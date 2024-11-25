@@ -12,7 +12,7 @@ charge_schedule:
   W_target: 100        # 目標タスク量 [回]
   SOC_Hi: 80           # SOC高領域閾値 [%]
   SOC_Low: 20          # SOC低領域閾値 [%]
-  SOC_cccv: 20         # cc-cv充電切り替え閾値 [%]
+  SOC_cccv: 80         # cc-cv充電切り替え閾値 [%]
   r_cc: 20             # cc充電速度 [%/min]
   r_cv: 20             # cv充電速度 [%/min]
   q_min: 20            # 最低充電量 [%]

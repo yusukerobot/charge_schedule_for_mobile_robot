@@ -17,84 +17,67 @@ namespace charge_schedule
 
     nsgaii::Individual TwoTransProblem::generateIndividual()
     {
+        nsgaii::Individual individual(max_charge_number);
+
         std::random_device rd; // ノイズを使用したシード
         std::mt19937 gen(rd()); // メルセンヌ・ツイスタエンジン
-
+        
         std::uniform_int_distribution<> charging_number_dist(0, max_charge_number);
-
-        nsgaii::Individual individual(max_charge_number);
         individual.charging_number = charging_number_dist(gen);
-        int last_position = 0;
-        float W = 0;
+        
+        int next_position = 0;
         int SOC_start = 0;
+        float elapsed_time = 0;
 
-        for (size_t i = 0; i < charging_number; ++i)
+        for (size_t i = 0; i < individual.charging_number; ++i)
         {
+            std::uniform_int_distribution<> timing_dist(0, static_cast<int>(std::floor(((T_max - elapsed_time) / T_cycle) - 1)));
             std::uniform_int_distribution<> timing_position_dist(0, visited_number - 1);
             int position = timing_position_dist(gen);
             if (i == 0)
             {
-                std::uniform_int_distribution<> timing_dist(0, static_cast<int>(std::floor((T_max / T_cycle) - 1)));
                 switch (position)
                 {
-                    case 0:{
+                    case 0:
                         individual.time_chromosome[i] = timing_dist(gen)* T_cycle + (T_cycle - T_move[visited_number - 1]);
-                        W = individual.time_chromosome[i] / T_cycle;
-                        SOC_start = 100 - ((W * E_cycle) + E_cs[position]);
-                        std::uniform_int_distribution<> target_SOC_dist(SOC_start, 100);
-                        individual.soc_chromosome[i] = target_SOC_dist(gen);
+                        next_position = 1;
                         break;
-                    }
-                    case 1:{
+                    case 1:
                         individual.time_chromosome[i] = timing_dist(gen) * T_cycle;
-                        W = individual.time_chromosome[i] / T_cycle;
-                        SOC_start = 100 - ((W * E_cycle) + E_cs[position]);
-                        std::uniform_int_distribution<> target_SOC_dist(SOC_start, 100);
-                        individual.soc_chromosome[i] = target_SOC_dist(gen);
+                        next_position = 0;
                         break;
-                    }
                     default:
                         break;
                 }
+                SOC_start = 100 - ((individual.time_chromosome[i] / T_cycle) * E_cycle + E_cs[position]);
             } else{
-                std::uniform_int_distribution<> timing_dist(0, static_cast<int>(std::floor((T_max / T_cycle) - 1)));
                 switch (position)
                 {
-                    case 0:{
-                        individual.time_chromosome[i] = timing_dist(gen) * T_cycle;
-                        W = individual.time_chromosome[i] / T_cycle;
-                        if ( i == 0)
-                        {
-                            SOC_start = 100 - ((W * E_cycle) + E_cs[position]);
-                        } else{
-                            SOC_start = individual.soc_chromosome[i - 1] - (E_cs[last_position] + (W * E_cycle) + E_cs[position]);
-                        }
-                        std::uniform_int_distribution<> target_SOC_dist(SOC_start, 100);
-                        individual.soc_chromosome[i] = target_SOC_dist(gen);
+                    case 0:
+                        individual.time_chromosome[i] = elapsed_time + (timing_dist(gen) * T_cycle) + (T_cycle - T_move[visited_number - 1]);
+                        SOC_start = individual.soc_chromosome[i - 1] - (E_cs[next_position] + (individual.time_chromosome[i] - elapsed_time) / T_cycle * E_cycle + E_cs[position]);
+                        next_position = 1;
                         break;
-                    }
-                    case 1:{
-                        individual.time_chromosome[i] = timing_dist(gen) * T_cycle;
-                        W = individual.time_chromosome[i] / T_cycle;
-                        if ( i == 0)
-                        {
-                            SOC_start = 100 - ((W * E_cycle) + E_cs[position]);
-                        } else{
-                            SOC_start = individual.soc_chromosome[i - 1] - (E_cs[last_position] + (W * E_cycle) + E_cs[position]);
-                        }
-                        std::uniform_int_distribution<> target_SOC_dist(SOC_start, 100);
-                        individual.soc_chromosome[i] = target_SOC_dist(gen);
+                    case 1:
+                        individual.time_chromosome[i] = elapsed_time + timing_dist(gen) * T_cycle;
+                        SOC_start = individual.soc_chromosome[i - 1] - (E_cs[next_position] + (individual.time_chromosome[i] - elapsed_time) / T_cycle * E_cycle + E_cs[position]);
+                        next_position = 0;
                         break;
-                    }
                     default:
                         break;
                 }
             }
-            last_position = position;
+            std::uniform_int_distribution<> target_SOC_dist(SOC_start, 100);
+            individual.soc_chromosome[i] = target_SOC_dist(gen);
+            individual.T_span[i][0] = individual.time_chromosome[i];
+            individual.T_span[i][1] = T_cs[position];
+            individual.T_span[i][2] = calcChargingTime(SOC_start, individual.soc_chromosome[i]);
+            individual.T_span[i][3] = T_cs[next_position];
+            elapsed_time += individual.T_span[i][0] + individual.T_span[i][1] + individual.T_span[i][2] + individual.T_span[i][3];
         }
-        if (charging_number < max_charge_number)
+        if (individual.charging_number < max_charge_number)
         {
-            for (size_t i = charging_number; i < max_charge_number; ++i)
+            for (size_t i = individual.charging_number; i < max_charge_number; ++i)
             {
                 individual.time_chromosome[i] = -1;
                 individual.soc_chromosome[i] = -1;
@@ -156,5 +139,20 @@ namespace charge_schedule
             }
         }
         return hi_low_time;
+    }
+
+    float TwoTransProblem::calcChargingTime(int& soc_start, int& soc_target)
+    {
+        float charging_time = 0;
+
+        if (SOC_cccv < soc_start){
+            charging_time = (soc_target - soc_start) / r_cv;
+        } else if (soc_start < SOC_cccv && SOC_cccv < soc_target){
+            charging_time = (SOC_cccv - soc_start) / r_cc + (soc_target - SOC_cccv) / r_cv;
+        } else{
+            charging_time = (soc_target - soc_start) / r_cc;
+        }
+
+        return charging_time;
     }
 }

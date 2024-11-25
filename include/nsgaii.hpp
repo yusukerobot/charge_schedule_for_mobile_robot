@@ -17,6 +17,7 @@ namespace nsgaii
       int charging_number;
       std::vector<std::array<float, 4>> T_span;
       std::vector<std::array<float, 2>> T_SOC_HiLow;
+      std::vector<int> W;
    };
 
    class ScheduleNsgaii
