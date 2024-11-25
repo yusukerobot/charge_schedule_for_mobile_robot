@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+#include <array>
 #include <memory>
 #include <string>
 
@@ -12,12 +14,16 @@ namespace nsgaii
       std::vector<int> soc_chromosome;
       float f1;
       float f2;
+      int charging_number;
+      std::vector<std::array<float, 4>> T_span;
+      std::vector<std::array<float, 2>> T_SOC_HiLow;
    };
 
    class ScheduleNsgaii
    {
    public:
-      ScheduleNsgaii(const std::string config_file_path);
+      ScheduleNsgaii(const std::string& config_file_path);
+      virtual ~ScheduleNsgaii() = default;
 
       void generateParents();
       void generateChildren();
@@ -31,7 +37,7 @@ namespace nsgaii
       bool dominating(Individual& A, Individual& B);
 
       virtual void generateFirstCombinedPopulation() = 0;
-      virtual void evaluatePopulation() = 0;
+      virtual void evaluatePopulation(std::vector<nsgaii::Individual>& population) = 0;
 
    protected:
       std::vector<float> T_move;    // 移動時間

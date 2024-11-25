@@ -1,6 +1,7 @@
 #include <vector>
 #include <memory>
 #include <random>
+#include <iostream>
 #include <yaml-cpp/yaml.h>
 
 #include "nsgaii.hpp"
@@ -8,20 +9,38 @@
 namespace nsgaii
 {
    Individual::Individual(const int& chromosome_size)
-   : time_chromosome(chromosome_size, 0), soc_chromosome(chromosome_size, 0), f1(0), f2(0)
+   : time_chromosome(chromosome_size, 0), soc_chromosome(chromosome_size, 0), f1(0), f2(0), charging_number(0)
    {}
 
-   ScheduleNsgaii::ScheduleNsgaii(const std::string config_file_path)
+   ScheduleNsgaii::ScheduleNsgaii(const std::string& config_file_path)
    {
-      YAML::Node config = YAML::LoadFile(config_file_path);
+      YAML::Node node;
+      try {
+         node = YAML::LoadFile(config_file_path);
+      } catch (const YAML::Exception& e) {
+         std::cerr << "YAMLファイルの読み込みに失敗しました: " << e.what() << std::endl;
+         throw std::runtime_error("YAML読み込みエラー");
+      }
+
+      YAML::Node config = node["charge_schedule"];
+
+      // visited_number の設定と検証
+      visited_number = config["visited_number"].as<int>();
+      if (visited_number <= 0) {
+         std::cerr << "visited_numberが無効です: " << visited_number << std::endl;
+         throw std::invalid_argument("visited_number is invalid");
+      }
+
+      // サイズのリサイズと初期化
       T_move.resize(visited_number);
       T_standby.resize(visited_number);
       T_cs.resize(visited_number);
       E_move.resize(visited_number);
       E_standby.resize(visited_number);
       E_cs.resize(visited_number);
-      for (size_t i = 0; i < visited_number; ++i)
-      {
+
+      // YAMLからデータを読み込み
+      for (size_t i = 0; i < visited_number; ++i) {
          T_move[i] = config["T_move"][i].as<float>();
          T_standby[i] = config["T_standby"][i].as<float>();
          T_cs[i] = config["T_cs"][i].as<float>();
@@ -29,7 +48,8 @@ namespace nsgaii
          E_standby[i] = config["E_standby"][i].as<float>();
          E_cs[i] = config["E_cs"][i].as<float>();
       }
-      visited_number = config["visited_number"].as<int>();
+
+      // その他のパラメータの設定
       population_size = config["population_size"].as<int>();
       T_max = config["T_max"].as<int>();
       max_charge_number = config["max_charge_number"].as<int>();
@@ -41,9 +61,12 @@ namespace nsgaii
       r_cv = config["r_cv"].as<int>();
       q_min = config["q_min"].as<int>();
 
+      // 個体の初期化
       parents.resize(population_size, Individual(max_charge_number));
       children.resize(population_size, Individual(max_charge_number));
-      combind_population.resize(population_size, Individual(2 * max_charge_number));
+      combind_population.resize(2*population_size, Individual(2 * max_charge_number));
+
+
    }
 
    void ScheduleNsgaii::generateParents()
@@ -189,15 +212,15 @@ namespace nsgaii
 
    void ScheduleNsgaii::crossover(std::pair<Individual, Individual> selected_parents)
    {
-
+      int a =0;
    }
 
    void ScheduleNsgaii::mutation()
    {
-
+      int a =0;
    }
 
-   bool dominating(Individual& A, Individual& B)
+   bool ScheduleNsgaii::dominating(Individual& A, Individual& B)
    {
       bool all_less_or_equal = (A.f1 <= B.f1 && A.f2 <= B.f2);
       bool any_less = (A.f1 < B.f1 || A.f2 < B.f2);
