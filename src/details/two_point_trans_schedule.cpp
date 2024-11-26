@@ -6,7 +6,7 @@
 namespace charge_schedule
 {
     TwoTransProblem::TwoTransProblem(const std::string& config_file_path)
-    : nsgaii::ScheduleNsgaii(config_file_path), W_total(0), W_int(0), W_dec(0.0f), T_cycle(0), E_cycle(0)
+    : nsgaii::ScheduleNsgaii(config_file_path)
     {
         for (size_t i = 0; i < visited_number; ++i)
         {
@@ -25,55 +25,61 @@ namespace charge_schedule
         std::uniform_int_distribution<> charging_number_dist(0, max_charge_number);
         individual.charging_number = charging_number_dist(gen);
         
-        int next_position = 0;
-        int SOC_start = 0;
+        int return_position = 0;
+        int soc_charging_start = 0;
         float elapsed_time = 0;
+        int W_total = 0;
+        size_t i = 0;
 
-        for (size_t i = 0; i < individual.charging_number; ++i)
+        while (i < individual.charging_number && elapsed_time < T_max && W_total < W_target)
         {
-            std::uniform_int_distribution<> timing_dist(0, static_cast<int>(std::floor(((T_max - elapsed_time) / T_cycle) - 1)));
-            std::uniform_int_distribution<> timing_position_dist(0, visited_number - 1);
-            int position = timing_position_dist(gen);
+            std::uniform_int_distribution<> cycle_dist(0, static_cast<int>(std::floor(((T_max - elapsed_time) / T_cycle) - 1)));
+            std::uniform_int_distribution<> position_dist(0, visited_number - 1);
+            int charging_position = position_dist(gen);
+            int cycle = cycle_dist(gen);
             if (i == 0)
             {
-                switch (position)
+                switch (charging_position)
                 {
                     case 0:
-                        individual.time_chromosome[i] = timing_dist(gen)* T_cycle + (T_cycle - T_move[visited_number - 1]);
-                        next_position = 1;
+                        individual.time_chromosome[i] = cycle * T_cycle;
+                        return_position = 1;
                         break;
                     case 1:
-                        individual.time_chromosome[i] = timing_dist(gen) * T_cycle;
-                        next_position = 0;
+                        individual.time_chromosome[i] = cycle * T_cycle + (T_cycle - T_move[visited_number - 1]);
+                        return_position = 0;
                         break;
                     default:
                         break;
                 }
-                SOC_start = 100 - ((individual.time_chromosome[i] / T_cycle) * E_cycle + E_cs[position]);
+                W_total += cycle;
+                soc_charging_start = 100 - ((individual.time_chromosome[i] - elapsed_time) / T_cycle * E_cycle + E_cs[charging_position]);
             } else{
-                switch (position)
+                switch (charging_position)
                 {
                     case 0:
-                        individual.time_chromosome[i] = elapsed_time + (timing_dist(gen) * T_cycle) + (T_cycle - T_move[visited_number - 1]);
-                        SOC_start = individual.soc_chromosome[i - 1] - (E_cs[next_position] + (individual.time_chromosome[i] - elapsed_time) / T_cycle * E_cycle + E_cs[position]);
-                        next_position = 1;
+                        individual.time_chromosome[i] = elapsed_time + cycle * T_cycle;
+                        soc_charging_start = individual.soc_chromosome[i - 1] - (E_cs[return_position] + (individual.time_chromosome[i] - elapsed_time) / T_cycle * E_cycle + E_cs[charging_position]);
+                        return_position = 1;
                         break;
                     case 1:
-                        individual.time_chromosome[i] = elapsed_time + timing_dist(gen) * T_cycle;
-                        SOC_start = individual.soc_chromosome[i - 1] - (E_cs[next_position] + (individual.time_chromosome[i] - elapsed_time) / T_cycle * E_cycle + E_cs[position]);
-                        next_position = 0;
+                        individual.time_chromosome[i] = elapsed_time + (cycle * T_cycle) + (T_cycle - T_move[visited_number - 1]);
+                        soc_charging_start = individual.soc_chromosome[i - 1] - (E_cs[return_position] + (individual.time_chromosome[i] - elapsed_time) / T_cycle * E_cycle + E_cs[charging_position]);
+                        return_position = 0;
                         break;
                     default:
                         break;
                 }
             }
-            std::uniform_int_distribution<> target_SOC_dist(SOC_start, 100);
+            std::uniform_int_distribution<> target_SOC_dist(soc_charging_start, 100);
             individual.soc_chromosome[i] = target_SOC_dist(gen);
+            individual.W[i] = W_total;
             individual.T_span[i][0] = individual.time_chromosome[i];
-            individual.T_span[i][1] = T_cs[position];
-            individual.T_span[i][2] = calcChargingTime(SOC_start, individual.soc_chromosome[i]);
-            individual.T_span[i][3] = T_cs[next_position];
+            individual.T_span[i][1] = T_cs[charging_position];
+            individual.T_span[i][2] = calcChargingTime(soc_charging_start, individual.soc_chromosome[i]);
+            individual.T_span[i][3] = T_cs[return_position];
             elapsed_time += individual.T_span[i][0] + individual.T_span[i][1] + individual.T_span[i][2] + individual.T_span[i][3];
+            ++i;
         }
         if (individual.charging_number < max_charge_number)
         {
@@ -141,16 +147,16 @@ namespace charge_schedule
         return hi_low_time;
     }
 
-    float TwoTransProblem::calcChargingTime(int& soc_start, int& soc_target)
+    float TwoTransProblem::calcChargingTime(int& soc_charging_start, int& soc_target)
     {
         float charging_time = 0;
 
-        if (SOC_cccv < soc_start){
-            charging_time = (soc_target - soc_start) / r_cv;
-        } else if (soc_start < SOC_cccv && SOC_cccv < soc_target){
-            charging_time = (SOC_cccv - soc_start) / r_cc + (soc_target - SOC_cccv) / r_cv;
+        if (SOC_cccv < soc_charging_start){
+            charging_time = (soc_target - soc_charging_start) / r_cv;
+        } else if (soc_charging_start < SOC_cccv && SOC_cccv < soc_target){
+            charging_time = (SOC_cccv - soc_charging_start) / r_cc + (soc_target - SOC_cccv) / r_cv;
         } else{
-            charging_time = (soc_target - soc_start) / r_cc;
+            charging_time = (soc_target - soc_charging_start) / r_cc;
         }
 
         return charging_time;

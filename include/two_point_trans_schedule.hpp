@@ -25,9 +25,6 @@ namespace charge_schedule
         float calcChargingTime(int& soc_start, int& soc_target);
         
     private:
-        int W_total;   // 合計完了タスク量
-        int W_int;     // 完了タスクの整数値
-        float W_dec;   // 完了タスクの少数値
         float T_cycle;  // 1回のタスクにかかる時間
         float E_cycle;  // 1回のタスクの放電量
     };

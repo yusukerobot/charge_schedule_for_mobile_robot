@@ -10,7 +10,11 @@ namespace nsgaii
 {
    Individual::Individual(const int& chromosome_size)
    : time_chromosome(chromosome_size, 0), soc_chromosome(chromosome_size, 0), f1(0), f2(0), charging_number(0)
-   {}
+   {
+      T_span.resize(chromosome_size + 1);
+      T_SOC_HiLow.resize(chromosome_size + 1);
+      W.resize(chromosome_size + 1, 0);
+   }
 
    ScheduleNsgaii::ScheduleNsgaii(const std::string& config_file_path)
    {
