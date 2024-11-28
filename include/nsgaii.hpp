@@ -41,12 +41,12 @@ namespace nsgaii
       virtual void evaluatePopulation(std::vector<nsgaii::Individual>& population) = 0;
 
    protected:
-      std::vector<float> T_move;    // 移動時間
-      std::vector<float> T_standby; // 待機時間
-      std::vector<float> T_cs;      // 充電ステーションまでの移動時間
-      std::vector<float> E_move;    // 移動中の放電量
-      std::vector<float> E_standby; // 待機中の放電量
-      std::vector<float> E_cs;      // 充電ステーションまでの移動中の放電量
+      std::vector<float> T_move;    // 移動時間 [min]
+      std::vector<float> T_standby; // 待機時間 [min]
+      std::vector<float> T_cs;      // 充電ステーションまでの移動時間 [min]
+      std::vector<float> E_move;    // 移動中の放電量 [%]
+      std::vector<float> E_standby; // 待機中の放電量 [%]
+      std::vector<float> E_cs;      // 充電ステーションまでの移動中の放電量 [%]
       int visited_number;           // 訪問先の数
       int population_size;          // 個体群サイズ
       int T_max;                    // 最大作業時間

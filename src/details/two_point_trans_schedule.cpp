@@ -24,69 +24,97 @@ namespace charge_schedule
         
         std::uniform_int_distribution<> charging_number_dist(0, max_charge_number);
         individual.charging_number = charging_number_dist(gen);
+        individual.time_chromosome.resize(individual.charging_number);
+        individual.soc_chromosome.resize(individual.charging_number);
+        individual.T_span.resize(individual.charging_number + 1);
+        individual.T_SOC_HiLow.resize(individual.charging_number + 1);
+        individual.W.resize(individual.charging_number + 1);
         
-        int return_position = 0;
+        int last_return_position = 0;
+        int next_return_position = 0;
         int soc_charging_start = 0;
         float elapsed_time = 0;
         int W_total = 0;
-        size_t i = 0;
+        int i = 0;
+        int max_cycle = static_cast<int>(std::floor((T_max - T_cycle) / T_cycle));
 
-        while (i < individual.charging_number && elapsed_time < T_max && W_total < W_target)
+        while (i < individual.charging_number && 0 < std::floor((T_max - T_cycle - elapsed_time) / T_cycle))
         {
-            std::uniform_int_distribution<> cycle_dist(0, static_cast<int>(std::floor(((T_max - elapsed_time) / T_cycle) - 1)));
-            std::uniform_int_distribution<> position_dist(0, visited_number - 1);
-            int charging_position = position_dist(gen);
+            std::uniform_int_distribution<> position_dist(0, 1);
+            int charging_timing_position = position_dist(gen);
+            int soc_zero_cycle = std::floor((T_max - T_cycle - elapsed_time) / E_cycle);
+            std::uniform_int_distribution<> cycle_dist(0, max_cycle);
             int cycle = cycle_dist(gen);
-            if (i == 0)
-            {
-                switch (charging_position)
-                {
+
+            if (last_return_position == charging_timing_position) {
+                individual.time_chromosome[i] = cycle * T_cycle + elapsed_time;
+                switch (charging_timing_position) {
                     case 0:
-                        individual.time_chromosome[i] = cycle * T_cycle;
-                        return_position = 1;
+                        next_return_position = 1;
+                        ++W_total;
                         break;
                     case 1:
-                        individual.time_chromosome[i] = cycle * T_cycle + (T_cycle - T_move[visited_number - 1]);
-                        return_position = 0;
+                        next_return_position = 0;
                         break;
                     default:
                         break;
                 }
-                W_total += cycle;
-                soc_charging_start = 100 - ((individual.time_chromosome[i] - elapsed_time) / T_cycle * E_cycle + E_cs[charging_position]);
-            } else{
-                switch (charging_position)
-                {
+            } else {
+                individual.time_chromosome[i] = cycle * T_cycle - T_move[charging_timing_position] + elapsed_time;
+                switch (charging_timing_position) {
                     case 0:
-                        individual.time_chromosome[i] = elapsed_time + cycle * T_cycle;
-                        soc_charging_start = individual.soc_chromosome[i - 1] - (E_cs[return_position] + (individual.time_chromosome[i] - elapsed_time) / T_cycle * E_cycle + E_cs[charging_position]);
-                        return_position = 1;
+                        next_return_position = 1;
                         break;
                     case 1:
-                        individual.time_chromosome[i] = elapsed_time + (cycle * T_cycle) + (T_cycle - T_move[visited_number - 1]);
-                        soc_charging_start = individual.soc_chromosome[i - 1] - (E_cs[return_position] + (individual.time_chromosome[i] - elapsed_time) / T_cycle * E_cycle + E_cs[charging_position]);
-                        return_position = 0;
+                        next_return_position = 0;
                         break;
                     default:
                         break;
                 }
             }
+
+            W_total += cycle;
+
+            if (i == 0) {
+                soc_charging_start = 100 - (((individual.time_chromosome[i] - elapsed_time) / T_cycle) * E_cycle + E_cs[charging_timing_position]);
+            } else {
+                soc_charging_start = individual.soc_chromosome[i - 1] - (E_cs[last_return_position] + ((individual.time_chromosome[i] - elapsed_time) / T_cycle) * E_cycle + E_cs[charging_timing_position]);
+            }
+
             std::uniform_int_distribution<> target_SOC_dist(soc_charging_start, 100);
             individual.soc_chromosome[i] = target_SOC_dist(gen);
             individual.W[i] = W_total;
-            individual.T_span[i][0] = individual.time_chromosome[i];
-            individual.T_span[i][1] = T_cs[charging_position];
+            individual.T_span[i][0] = individual.time_chromosome[i] - elapsed_time;
+            individual.T_span[i][1] = T_cs[charging_timing_position];
             individual.T_span[i][2] = calcChargingTime(soc_charging_start, individual.soc_chromosome[i]);
-            individual.T_span[i][3] = T_cs[return_position];
+            individual.T_span[i][3] = T_cs[next_return_position];
+
             elapsed_time += individual.T_span[i][0] + individual.T_span[i][1] + individual.T_span[i][2] + individual.T_span[i][3];
+            last_return_position = next_return_position;
             ++i;
         }
-        if (individual.charging_number < max_charge_number)
+
+        if (i < individual.charging_number)
         {
-            for (size_t i = individual.charging_number; i < max_charge_number; ++i)
-            {
-                individual.time_chromosome[i] = -1;
-                individual.soc_chromosome[i] = -1;
+            individual.charging_number = i;
+            individual.time_chromosome.resize(individual.charging_number);
+            individual.soc_chromosome.resize(individual.charging_number);
+            individual.T_span.resize(individual.charging_number + 1);
+            individual.T_SOC_HiLow.resize(individual.charging_number + 1);
+            individual.W.resize(individual.charging_number + 1);
+        }
+
+        if (individual.W[i-1] < W_target) {
+            individual.W[i] = W_target;
+            switch (last_return_position) {
+            case 0:
+                individual.T_span[i][0] = ((W_target - individual.W[i-1]) / T_cycle) - T_move[1];
+                break;
+            case 1:
+                individual.T_span[i][0] = (W_target - individual.W[i-1]) / T_cycle;
+                break;
+            default:
+                break;
             }
         }
 
@@ -99,9 +127,20 @@ namespace charge_schedule
         {
             combind_population[i] = generateIndividual();
             std::cout << "individual[ " << i << " ]" << std::endl;
+            std::cout << "charging_number: " << combind_population[i].charging_number << std::endl;
             for (int time : combind_population[i].time_chromosome)
             {
                 std::cout << time << " ";
+            }
+            std::cout << std::endl;
+            for (int soc : combind_population[i].soc_chromosome)
+            {
+                std::cout << soc << " ";
+            }
+            std::cout << std::endl;
+            for (int W : combind_population[i].W)
+            {
+                std::cout << W << " ";
             }
             std::cout << std::endl;
         }
