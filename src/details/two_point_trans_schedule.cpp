@@ -35,6 +35,7 @@ namespace charge_schedule
         int soc_charging_start = 0;
         float elapsed_time = 0;
         int W_total = 0;
+        int soc_zero_cycle = 0;
         int i = 0;
         int max_cycle = static_cast<int>(std::floor((T_max - T_cycle) / T_cycle));
 
@@ -42,8 +43,14 @@ namespace charge_schedule
         {
             std::uniform_int_distribution<> position_dist(0, 1);
             int charging_timing_position = position_dist(gen);
-            int soc_zero_cycle = std::floor((T_max - T_cycle - elapsed_time) / E_cycle);
-            std::uniform_int_distribution<> cycle_dist(0, max_cycle);
+            if (i == 0){
+                soc_zero_cycle = std::floor(100 / E_cycle);
+            } else {
+                soc_zero_cycle = std::floor((individual.soc_chromosome[i - 1] - E_cs[last_return_position]) / E_cycle);
+            }
+            max_cycle = std::floor((T_max - T_cycle - elapsed_time) / T_cycle);
+            int cycle_limit = std::min(soc_zero_cycle, max_cycle);
+            std::uniform_int_distribution<> cycle_dist(0, cycle_limit);
             int cycle = cycle_dist(gen);
 
             if (last_return_position == charging_timing_position) {
