@@ -15,8 +15,11 @@ namespace nsgaii
       float f1;
       float f2;
       int charging_number;
+      int penalty;
       std::vector<std::array<float, 4>> T_span;
       std::vector<std::array<float, 2>> T_SOC_HiLow;
+      std::vector<float> E_return;
+      std::vector<float> soc_charging_start;
       std::vector<int> W;
    };
 
@@ -39,6 +42,10 @@ namespace nsgaii
 
       virtual void generateFirstCombinedPopulation() = 0;
       virtual void evaluatePopulation(std::vector<nsgaii::Individual>& population) = 0;
+      
+      std::vector<Individual> parents;
+      std::vector<Individual> children;
+      std::vector<Individual> combind_population;
 
    protected:
       std::vector<float> T_move;    // 移動時間 [min]
@@ -55,12 +62,9 @@ namespace nsgaii
       int SOC_Hi;                   // SOC高領域閾値 [%]
       int SOC_Low;                  // SOC低領域閾値 [%]
       int SOC_cccv;                 // cc-cv充電切り替え閾値 [%]
-      int r_cc;                     // cc充電速度 [%/min]
-      int r_cv;                     // cv充電速度 [%/min]
+      float r_cc;                     // cc充電速度 [%/min]
+      float r_cv;                     // cv充電速度 [%/min]
       int q_min;                    // 最低充電量 [%]
 
-      std::vector<Individual> parents;
-      std::vector<Individual> children;
-      std::vector<Individual> combind_population;
    };
 } // namespace nsgaii

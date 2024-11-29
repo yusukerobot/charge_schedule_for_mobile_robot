@@ -22,9 +22,13 @@ namespace charge_schedule
         float makespan(std::vector<std::array<float, 4>>& T_span);
         float soc_HiLowTime(std::vector<std::array<float, 2>> T_SOC_HiLow);
 
+        void calcSOCHiLow(nsgaii::Individual& individual);
         float calcChargingTime(int& soc_start, int& soc_target);
+
+        void testTwenty();
         
     private:
+        int min_charge_number;        // 最小充電回数
         float T_cycle;  // 1回のタスクにかかる時間
         float E_cycle;  // 1回のタスクの放電量
     };

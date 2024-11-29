@@ -9,10 +9,12 @@
 namespace nsgaii
 {
    Individual::Individual(const int& chromosome_size)
-   : time_chromosome(chromosome_size, 0), soc_chromosome(chromosome_size, 0), f1(0), f2(0), charging_number(0)
+   : time_chromosome(chromosome_size, 0), soc_chromosome(chromosome_size, 0), f1(0), f2(0), charging_number(0), penalty(0)
    {
       T_span.resize(chromosome_size + 1);
       T_SOC_HiLow.resize(chromosome_size + 1);
+      E_return.resize(chromosome_size + 1, 0);
+      soc_charging_start.resize(chromosome_size + 1, 0);
       W.resize(chromosome_size + 1, 0);
    }
 
@@ -61,8 +63,8 @@ namespace nsgaii
       SOC_Hi = config["SOC_Hi"].as<int>();
       SOC_Low = config["SOC_Low"].as<int>();
       SOC_cccv = config["SOC_cccv"].as<int>();
-      r_cc = config["r_cc"].as<int>();
-      r_cv = config["r_cv"].as<int>();
+      r_cc = config["r_cc"].as<float>();
+      r_cv = config["r_cv"].as<float>();
       q_min = config["q_min"].as<int>();
 
       // 個体の初期化
