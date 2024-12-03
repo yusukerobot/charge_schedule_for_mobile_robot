@@ -88,7 +88,7 @@ namespace nsgaii
       for (int i = 0; i < population_size; i++)
       {
          parents[i] = combind_population[i];
-         // std::cout << parents[i].penalty << std::endl;
+         // std::cout << parents[i].charging_number << std::endl;
       }
    }
 
