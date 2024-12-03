@@ -16,7 +16,7 @@ int main()
    nsgaii->generateFirstCombinedPopulation();
    nsgaii->evaluatePopulation(nsgaii->combind_population);
    nsgaii->generateParents();
-   csvDebugParents(nsgaii->parents, 1, csv_file_path);
+   // csvDebugParents(nsgaii->parents, 1, csv_file_path);
 
    return 0;
 }

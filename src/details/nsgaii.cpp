@@ -78,10 +78,17 @@ namespace nsgaii
    void ScheduleNsgaii::generateParents()
    {
       std::vector<std::vector<int>> fronts = nonDominatedSorting();
+      // for (auto& front : fronts) {
+      //    for (int& individual : front) {
+      //       std::cout << individual << " ";
+      //    }
+      //    std::cout << std::endl;
+      // }
       crowdingSorting(fronts);
       for (int i = 0; i < population_size; i++)
       {
          parents[i] = combind_population[i];
+         // std::cout << parents[i].penalty << std::endl;
       }
    }
 
@@ -103,12 +110,12 @@ namespace nsgaii
    std::vector<std::vector<int>> ScheduleNsgaii::nonDominatedSorting()
    {
       std::vector<std::vector<int>> fronts;
-      std::vector<int> Np(2 * population_size, 0);
-      std::vector<std::set<int>> Sp(2 * population_size);
+      std::vector<int> Np(combind_population.size(), 0);
+      std::vector<std::set<int>> Sp(combind_population.size());
 
-      for (size_t i = 0; i < 2 * population_size; ++i) 
+      for (size_t i = 0; i < combind_population.size(); ++i) 
       {
-         for (size_t j = 0; j < 2 * population_size; ++j) 
+         for (size_t j = 0; j < combind_population.size(); ++j) 
          {
             if (i == j) continue;
             if (dominating(combind_population[i], combind_population[j])) 
@@ -123,7 +130,7 @@ namespace nsgaii
       }
 
       std::vector<int> first_front;
-      for (size_t i = 0; i < 2 * population_size; ++i) 
+      for (size_t i = 0; i < combind_population.size(); ++i) 
       {
          if (Np[i] == 0) 
          {
@@ -133,7 +140,8 @@ namespace nsgaii
       fronts.push_back(first_front);
 
       size_t current_front = 0;
-      while (!fronts[current_front].empty())
+      int fronts_individual_count = first_front.size();
+      while (fronts_individual_count < combind_population.size())
       {
          std::vector<int> next_front;
          for (int individual : fronts[current_front]) 
@@ -150,8 +158,9 @@ namespace nsgaii
          if (!next_front.empty()) 
          {
             fronts.push_back(next_front);
+            ++current_front;
+            fronts_individual_count += next_front.size();
          }
-         ++current_front;
       }
       return fronts;
    }
@@ -160,22 +169,20 @@ namespace nsgaii
    {
       for (auto& front : fronts) 
       {
-         if (front.empty()) continue;
+         if (front.size() < 2) continue;
+
          std::vector<float> crowding_distance(front.size(), 0.0f);
 
          for (size_t obj = 0; obj < 2; ++obj) 
          {
             std::sort(front.begin(), front.end(), [&](int a, int b) {
                return (obj == 0) 
-                  ? combind_population[a].f1 < combind_population[b].f1
-                  : combind_population[a].f2 < combind_population[b].f2;
+                  ? combind_population[a].f1 <= combind_population[b].f1
+                  : combind_population[a].f2 <= combind_population[b].f2;
             });
 
-            if (front.size() > 1) 
-            {
-               crowding_distance[0] = std::numeric_limits<float>::infinity();
-               crowding_distance[front.size() - 1] = std::numeric_limits<float>::infinity();
-            }
+            crowding_distance[0] = std::numeric_limits<float>::infinity();
+            crowding_distance[front.size() - 1] = std::numeric_limits<float>::infinity();
 
             for (size_t i = 1; i < front.size() - 1; ++i) 
             {
@@ -189,13 +196,25 @@ namespace nsgaii
 
                if (range > 0) {
                   crowding_distance[i] += diff / range;
+               } else {
+                  crowding_distance[i] += 0.0;
                }
             }
          }
 
-         std::sort(front.begin(), front.end(), [&](int a, int b) {
-            return crowding_distance[&a - &front[0]] > crowding_distance[&b - &front[0]];
+         std::vector<std::pair<int, float>> indexed_front;
+         for (size_t i = 0; i < front.size(); ++i) {
+            indexed_front.emplace_back(front[i], crowding_distance[i]);
+         }
+
+         std::sort(indexed_front.begin(), indexed_front.end(), [](const auto& a, const auto& b) {
+            return a.second > b.second;
          });
+
+         front.clear();
+         for (const auto& elem : indexed_front) {
+            front.push_back(elem.first);
+         }
       }
 
       std::vector<Individual> sorted_population;

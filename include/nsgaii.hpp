@@ -62,8 +62,8 @@ namespace nsgaii
       int SOC_Hi;                   // SOC高領域閾値 [%]
       int SOC_Low;                  // SOC低領域閾値 [%]
       int SOC_cccv;                 // cc-cv充電切り替え閾値 [%]
-      float r_cc;                     // cc充電速度 [%/min]
-      float r_cv;                     // cv充電速度 [%/min]
+      float r_cc;                   // cc充電速度 [%/min]
+      float r_cv;                   // cv充電速度 [%/min]
       int q_min;                    // 最低充電量 [%]
 
    };

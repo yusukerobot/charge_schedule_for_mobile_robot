@@ -17,67 +17,6 @@ namespace charge_schedule
         // testTwenty();
     }
 
-    void TwoTransProblem::testTwenty() {
-        int W_total = 0;
-        float Time_total = 0.0f;
-        std::cout << "----Test Twenty Probrem----" << std::endl;
-        std::cout << "T cycle: " << T_cycle << std::endl;
-        std::cout << "E cycle: " << E_cycle << std::endl;
-        W_total += std::floor(80/E_cycle);
-        std::cout << "One span Work Count: " << std::floor(80/E_cycle) << std::endl;
-        std::cout << "One span Work Time: " << std::floor(80/E_cycle)* T_cycle << std::endl;
-        std::cout << "One span Outward E: " << E_cs[0] << std::endl;
-        std::cout << "One span Charging Time: " << (SOC_cccv - (20 - E_cs[0])) / r_cc + (10 / r_cv) << std::endl;
-        std::cout << "One span Return E: " << E_cs[1] << std::endl;
-        ++W_total;
-        std::cout << "Work count ++: "  << std::endl;
-        Time_total += std::floor(80/E_cycle)* T_cycle + T_move[0] + (SOC_cccv - (20 - E_cs[0])) / r_cc + (10 / r_cv) + E_cs[1];
-        std::cout << "One span total Work count: " << W_total << std::endl;
-        std::cout << "One span total Time: " << Time_total << std::endl;
-        std::cout << "---" << std::endl;
-
-        W_total += std::floor((100 - E_cs[1] - 20)/E_cycle);
-        std::cout << "Second span Work Count: " << std::floor((100 - E_cs[1] - 20)/E_cycle) << std::endl;
-        std::cout << "Second span Work Time: " << std::floor((100 - E_cs[1] - 20)/E_cycle)* T_cycle << std::endl;
-        std::cout << "Second span Outward E: " << E_cs[1] << std::endl;
-        std::cout << "Second span Charging Time: " << (SOC_cccv - (20 - E_cs[1])) / r_cc + (10 / r_cv) << std::endl;
-        std::cout << "Second span Return E: " << E_cs[0] << std::endl;
-        Time_total += std::floor((100 - E_cs[1] - 20)/E_cycle)* T_cycle + T_move[1] + (SOC_cccv - (20 - E_cs[1])) / r_cc + (10 / r_cv) + E_cs[0];
-        std::cout << "Second span total Work count: " << W_total << std::endl;
-        std::cout << "Second span total Time: " << Time_total << std::endl;
-        std::cout << "---" << std::endl;
-
-        // Time_total += (W_target - W_total) / T_cycle - T_move[1];
-        // std::cout << "Total Time of 40 works: " << Time_total << std::endl;
-        W_total += (180 - Time_total) / T_cycle;
-        std::cout << "Total Works at 180 min: " << W_total << std::endl;
-
-        // W_total += std::floor((100 - E_cs[0] - 20)/E_cycle);
-        // std::cout << "Third span Work Count: " << std::floor((100 - E_cs[0] - 20)/E_cycle) << std::endl;
-        // std::cout << "Third span Work Time: " << std::floor((100 - E_cs[0] - 20)/E_cycle)* T_cycle << std::endl;
-        // std::cout << "Third span Outward E: " << E_cs[0] << std::endl;
-        // std::cout << "Third span Charging Time: " << (SOC_cccv - (20 - E_cs[1])) / r_cc + (10 / r_cv) << std::endl;
-        // std::cout << "Third span Return E: " << E_cs[1] << std::endl;
-        // ++W_total;
-        // std::cout << "Work count ++: "  << std::endl;
-        // Time_total += std::floor((100 - E_cs[0] - 20)/E_cycle)* T_cycle + T_move[0] + (SOC_cccv - (20 - E_cs[0])) / r_cc + (10 / r_cv) + E_cs[1];
-        // std::cout << "Third span total Work count: " << W_total << std::endl;
-        // std::cout << "Third span total Time: " << Time_total << std::endl;
-        // std::cout << "---" << std::endl;
-
-        // W_total += std::floor((100 - E_cs[1] - 20)/E_cycle);
-        // std::cout << "Four span Work Count: " << std::floor((100 - E_cs[1] - 20)/E_cycle) << std::endl;
-        // std::cout << "Four span Work Time: " << std::floor((100 - E_cs[1] - 20)/E_cycle)* T_cycle << std::endl;
-        // std::cout << "Four span Outward E: " << E_cs[1] << std::endl;
-        // std::cout << "Four span Charging Time: " << (SOC_cccv - (20 - E_cs[1])) / r_cc + (10 / r_cv) << std::endl;
-        // std::cout << "Four span Return E: " << E_cs[0] << std::endl;
-        // Time_total += std::floor((100 - E_cs[1] - 20)/E_cycle)* T_cycle + T_move[1] + (SOC_cccv - (20 - E_cs[1])) / r_cc + (10 / r_cv) + E_cs[0];
-        // std::cout << "v span total Work count: " << W_total << std::endl;
-        // std::cout << "Four span total Time: " << Time_total << std::endl;
-        // std::cout << "---" << std::endl;
-
-        std::cout << "---------------------------" << std::endl;
-    }
 
     nsgaii::Individual TwoTransProblem::generateIndividual()
     {
@@ -211,60 +150,10 @@ namespace charge_schedule
 
     void TwoTransProblem::generateFirstCombinedPopulation()
     {
-        for (size_t i = 0; i < 2*population_size; ++i)
+        for (int i = 0; i < 2*population_size; ++i)
         {
             combind_population[i] = generateIndividual();
-            // std::cout << "---" << std::endl;
-            // std::cout << "individual[ " << i << " ]" << std::endl;
-            // std::cout << "charging_number: " << combind_population[i].charging_number << std::endl;
-            // for (int time : combind_population[i].time_chromosome)
-            // {
-            //     std::cout << time << " ";
-            // }
-            // std::cout << std::endl;
-            // for (int soc : combind_population[i].soc_chromosome)
-            // {
-            //     std::cout << soc << " ";
-            // }
-            // std::cout << std::endl;
-            // for (int W : combind_population[i].W)
-            // {
-            //     std::cout << W << " ";
-            // }
-            // std::cout << std::endl;
-            // std::cout << "T_span[0] : ";
-            // for (auto& span : combind_population[i].T_span)
-            // {
-            //     std::cout << span[0] << " ";
-            // }
-            // std::cout << std::endl;
-            // std::cout << "T_span[1] : ";
-            // for (auto& span : combind_population[i].T_span)
-            // {
-            //     std::cout << span[1] << " ";
-            // }
-            // std::cout << std::endl;
-            // std::cout << "T_span[2] : ";
-            // for (auto& span : combind_population[i].T_span)
-            // {
-            //     std::cout << span[2] << " ";
-            // }
-            // std::cout << std::endl;
-            // std::cout << "T_span[3] : ";
-            // for (auto& span : combind_population[i].T_span)
-            // {
-            //     std::cout << span[3] << " ";
-            // }
-            // std::cout << std::endl;
-            // float total_time = 0.0f;
-            // for (auto& span : combind_population[i].T_span)
-            // {
-            //     for (auto& section : span)
-            //     total_time += section;
-            // }
-            // std::cout << "Total Time of " << W_target << " works: " << total_time << std::endl;
-            // std::cout << "penalty count: " << combind_population[i].penalty << std::endl;
-            // std::cout << "---" << std::endl;
+            if (combind_population[i].penalty > 0) --i;
         }
     }
 
@@ -363,5 +252,67 @@ namespace charge_schedule
         }
 
         return charging_time;
+    }
+
+    void TwoTransProblem::testTwenty() {
+        int W_total = 0;
+        float Time_total = 0.0f;
+        std::cout << "----Test Twenty Probrem----" << std::endl;
+        std::cout << "T cycle: " << T_cycle << std::endl;
+        std::cout << "E cycle: " << E_cycle << std::endl;
+        W_total += std::floor(80/E_cycle);
+        std::cout << "One span Work Count: " << std::floor(80/E_cycle) << std::endl;
+        std::cout << "One span Work Time: " << std::floor(80/E_cycle)* T_cycle << std::endl;
+        std::cout << "One span Outward E: " << E_cs[0] << std::endl;
+        std::cout << "One span Charging Time: " << (SOC_cccv - (20 - E_cs[0])) / r_cc + (10 / r_cv) << std::endl;
+        std::cout << "One span Return E: " << E_cs[1] << std::endl;
+        ++W_total;
+        std::cout << "Work count ++: "  << std::endl;
+        Time_total += std::floor(80/E_cycle)* T_cycle + T_move[0] + (SOC_cccv - (20 - E_cs[0])) / r_cc + (10 / r_cv) + E_cs[1];
+        std::cout << "One span total Work count: " << W_total << std::endl;
+        std::cout << "One span total Time: " << Time_total << std::endl;
+        std::cout << "---" << std::endl;
+
+        W_total += std::floor((100 - E_cs[1] - 20)/E_cycle);
+        std::cout << "Second span Work Count: " << std::floor((100 - E_cs[1] - 20)/E_cycle) << std::endl;
+        std::cout << "Second span Work Time: " << std::floor((100 - E_cs[1] - 20)/E_cycle)* T_cycle << std::endl;
+        std::cout << "Second span Outward E: " << E_cs[1] << std::endl;
+        std::cout << "Second span Charging Time: " << (SOC_cccv - (20 - E_cs[1])) / r_cc + (10 / r_cv) << std::endl;
+        std::cout << "Second span Return E: " << E_cs[0] << std::endl;
+        Time_total += std::floor((100 - E_cs[1] - 20)/E_cycle)* T_cycle + T_move[1] + (SOC_cccv - (20 - E_cs[1])) / r_cc + (10 / r_cv) + E_cs[0];
+        std::cout << "Second span total Work count: " << W_total << std::endl;
+        std::cout << "Second span total Time: " << Time_total << std::endl;
+        std::cout << "---" << std::endl;
+
+        // Time_total += (W_target - W_total) / T_cycle - T_move[1];
+        // std::cout << "Total Time of 40 works: " << Time_total << std::endl;
+        W_total += (180 - Time_total) / T_cycle;
+        std::cout << "Total Works at 180 min: " << W_total << std::endl;
+
+        // W_total += std::floor((100 - E_cs[0] - 20)/E_cycle);
+        // std::cout << "Third span Work Count: " << std::floor((100 - E_cs[0] - 20)/E_cycle) << std::endl;
+        // std::cout << "Third span Work Time: " << std::floor((100 - E_cs[0] - 20)/E_cycle)* T_cycle << std::endl;
+        // std::cout << "Third span Outward E: " << E_cs[0] << std::endl;
+        // std::cout << "Third span Charging Time: " << (SOC_cccv - (20 - E_cs[1])) / r_cc + (10 / r_cv) << std::endl;
+        // std::cout << "Third span Return E: " << E_cs[1] << std::endl;
+        // ++W_total;
+        // std::cout << "Work count ++: "  << std::endl;
+        // Time_total += std::floor((100 - E_cs[0] - 20)/E_cycle)* T_cycle + T_move[0] + (SOC_cccv - (20 - E_cs[0])) / r_cc + (10 / r_cv) + E_cs[1];
+        // std::cout << "Third span total Work count: " << W_total << std::endl;
+        // std::cout << "Third span total Time: " << Time_total << std::endl;
+        // std::cout << "---" << std::endl;
+
+        // W_total += std::floor((100 - E_cs[1] - 20)/E_cycle);
+        // std::cout << "Four span Work Count: " << std::floor((100 - E_cs[1] - 20)/E_cycle) << std::endl;
+        // std::cout << "Four span Work Time: " << std::floor((100 - E_cs[1] - 20)/E_cycle)* T_cycle << std::endl;
+        // std::cout << "Four span Outward E: " << E_cs[1] << std::endl;
+        // std::cout << "Four span Charging Time: " << (SOC_cccv - (20 - E_cs[1])) / r_cc + (10 / r_cv) << std::endl;
+        // std::cout << "Four span Return E: " << E_cs[0] << std::endl;
+        // Time_total += std::floor((100 - E_cs[1] - 20)/E_cycle)* T_cycle + T_move[1] + (SOC_cccv - (20 - E_cs[1])) / r_cc + (10 / r_cv) + E_cs[0];
+        // std::cout << "v span total Work count: " << W_total << std::endl;
+        // std::cout << "Four span total Time: " << Time_total << std::endl;
+        // std::cout << "---" << std::endl;
+
+        std::cout << "---------------------------" << std::endl;
     }
 }
