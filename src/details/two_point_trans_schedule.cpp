@@ -37,6 +37,8 @@ namespace charge_schedule
         int W_total = 0;
         int i = 0;
 
+        std::cout << "charging_number: " << individual.charging_number << std::endl;
+        std::cout << "soc_zero_cycle ";
         while (i < individual.charging_number)
         {
             // charging_positionの決定
@@ -45,11 +47,12 @@ namespace charge_schedule
             int return_position = (charging_timing_position == 0) ? 1 : 0;
             // cycleの決定
             int soc_zero_cycle = (i == 0) ? std::floor(100 / E_cycle) : std::floor((individual.soc_chromosome[i - 1] - E_cs[last_return_position]) / E_cycle);
+            std::cout << soc_zero_cycle << " ";
             std::uniform_int_distribution<> cycle_dist(0, soc_zero_cycle);
             int cycle = cycle_dist(gen);
 
             individual.cycle[i] = cycle;
-            W_total += (last_return_position == charging_timing_position == 1) ? cycle : cycle + 1;
+            W_total += (last_return_position == charging_timing_position && charging_timing_position  == 1) ? cycle : cycle + 1;
 
             individual.time_chromosome[i] = calcTimeChromosome(cycle, last_return_position, charging_timing_position, elapsed_time);
 
@@ -75,6 +78,7 @@ namespace charge_schedule
             last_return_position = return_position;
             ++i;
         }
+        std::cout << std::endl;
 
         // fixAndPenalty(individual);
         return individual;
@@ -125,9 +129,9 @@ namespace charge_schedule
             int return_position = (charge_timing_position == 0) ? 1 : 0;
 
             child.first.cycle[i] = generated_cycle.first;
-            c1_W_total += (last_return_position == charge_timing_position == 1) ? generated_cycle.first : generated_cycle.first + 1;
+            c1_W_total += (last_return_position == charge_timing_position && charge_timing_position == 1) ? generated_cycle.first : generated_cycle.first + 1;
             child.second.cycle[i] = generated_cycle.second;
-            c2_W_total += (last_return_position == charge_timing_position == 1) ? generated_cycle.second : generated_cycle.second + 1;
+            c2_W_total += (last_return_position == charge_timing_position && charge_timing_position == 1) ? generated_cycle.second : generated_cycle.second + 1;
 
             child.first.time_chromosome[i] = calcTimeChromosome(generated_cycle.first, last_return_position, charge_timing_position, calcLastElapsedTime(selected_parents.first, i));
             child.second.time_chromosome[i] = calcTimeChromosome(generated_cycle.second, last_return_position, charge_timing_position, calcLastElapsedTime(selected_parents.second, i));
