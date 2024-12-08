@@ -6,20 +6,21 @@
 
 #include "nsgaii.hpp"
 
-namespace nsgaii
-{
+namespace nsgaii {
    Individual::Individual(const int& chromosome_size)
-   : time_chromosome(chromosome_size, 0), soc_chromosome(chromosome_size, 0), f1(0), f2(0), charging_number(0), penalty(0)
+   : time_chromosome(chromosome_size, 0), soc_chromosome(chromosome_size, 0), f1(0), f2(0), charging_number(chromosome_size), penalty(0) 
    {
       T_span.resize(chromosome_size + 1);
       T_SOC_HiLow.resize(chromosome_size + 1);
-      E_return.resize(chromosome_size + 1, 0);
-      soc_charging_start.resize(chromosome_size + 1, 0);
+      E_return.resize(chromosome_size, 0);
+      cycle.resize(chromosome_size, 0);
+      soc_charging_start.resize(chromosome_size, 0);
       W.resize(chromosome_size + 1, 0);
+      charging_position.resize(chromosome_size, 0);
+      return_position.resize(chromosome_size, 0);
    }
 
-   ScheduleNsgaii::ScheduleNsgaii(const std::string& config_file_path)
-   {
+   ScheduleNsgaii::ScheduleNsgaii(const std::string& config_file_path) {
       YAML::Node node;
       try {
          node = YAML::LoadFile(config_file_path);
@@ -75,8 +76,7 @@ namespace nsgaii
 
    }
 
-   void ScheduleNsgaii::generateParents()
-   {
+   void ScheduleNsgaii::generateParents() {
       std::vector<std::vector<int>> fronts = nonDominatedSorting();
       // for (auto& front : fronts) {
       //    for (int& individual : front) {
@@ -88,52 +88,73 @@ namespace nsgaii
       for (int i = 0; i < population_size; i++)
       {
          parents[i] = combind_population[i];
-         // std::cout << parents[i].charging_number << std::endl;
       }
    }
 
-   void ScheduleNsgaii::generateChildren()
-   {
-      std::pair<Individual, Individual> selected_parents = rankingSelection();
-      crossover(selected_parents);
-      mutation();
+   void ScheduleNsgaii::generateChildren() {
+      size_t i = 0;
+      while (i < population_size) {
+         std::pair<Individual, Individual> selected_parents = rankingSelection();
+         std::pair<Individual, Individual> child = crossover(selected_parents);
+         // mutation();
+         children[i] = child.first;
+         children[i + 1] = child.second;
+         i += 2;
+
+         // std::cout << "--- selected parents ---" << std::endl;
+         // std::cout << "first: ";
+         // for (float& time : selected_parents.first.time_chromosome) {
+         //    std::cout << time << " ";
+         // }
+         // std::cout << std::endl;
+         // std::cout << "second: ";
+         // for (float& time : selected_parents.second.time_chromosome) {
+         //    std::cout << time << " ";
+         // }
+         // std::cout << std::endl;
+         // std::cout << "------" << std::endl;
+
+         // std::cout << "--- child ---" << std::endl;
+         // std::cout << "first: ";
+         // for (float& time : child.first.time_chromosome) {
+         //    std::cout << time << " ";
+         // }
+         // std::cout << std::endl;
+         // std::cout << "second: ";
+         // for (float& time : child.second.time_chromosome) {
+         //    std::cout << time << " ";
+         // }
+         // std::cout << std::endl;
+         // std::cout << "------" << std::endl;
+      }
    }
 
-   void ScheduleNsgaii::generateCombinedPopulation()
-   {
+   void ScheduleNsgaii::generateCombinedPopulation() {
       combind_population.clear();
       combind_population.reserve(parents.size() + children.size());
       combind_population.insert(combind_population.end(), parents.begin(), parents.end());
       combind_population.insert(combind_population.end(), children.begin(), children.end());
    }
 
-   std::vector<std::vector<int>> ScheduleNsgaii::nonDominatedSorting()
-   {
+   std::vector<std::vector<int>> ScheduleNsgaii::nonDominatedSorting() {
       std::vector<std::vector<int>> fronts;
       std::vector<int> Np(combind_population.size(), 0);
       std::vector<std::set<int>> Sp(combind_population.size());
 
-      for (size_t i = 0; i < combind_population.size(); ++i) 
-      {
-         for (size_t j = 0; j < combind_population.size(); ++j) 
-         {
+      for (size_t i = 0; i < combind_population.size(); ++i) {
+         for (size_t j = 0; j < combind_population.size(); ++j) {
             if (i == j) continue;
-            if (dominating(combind_population[i], combind_population[j])) 
-            {
+            if (dominating(combind_population[i], combind_population[j])) {
                Sp[i].insert(j);
-            }
-            else if (dominating(combind_population[j], combind_population[i])) 
-            {
+            } else if (dominating(combind_population[j], combind_population[i])) {
                ++Np[i];
             }
          }
       }
 
       std::vector<int> first_front;
-      for (size_t i = 0; i < combind_population.size(); ++i) 
-      {
-         if (Np[i] == 0) 
-         {
+      for (size_t i = 0; i < combind_population.size(); ++i) {
+         if (Np[i] == 0) {
             first_front.push_back(i);
          }
       }
@@ -141,22 +162,17 @@ namespace nsgaii
 
       size_t current_front = 0;
       int fronts_individual_count = first_front.size();
-      while (fronts_individual_count < combind_population.size())
-      {
+      while (fronts_individual_count < combind_population.size()) {
          std::vector<int> next_front;
-         for (int individual : fronts[current_front]) 
-         {
-            for (int dominated : Sp[individual]) 
-            {
+         for (int individual : fronts[current_front]) {
+            for (int dominated : Sp[individual]) {
                --Np[dominated];
-               if (Np[dominated] == 0) 
-               {
+               if (Np[dominated] == 0) {
                   next_front.push_back(dominated);
                }
             }
          }
-         if (!next_front.empty()) 
-         {
+         if (!next_front.empty()) {
             fronts.push_back(next_front);
             ++current_front;
             fronts_individual_count += next_front.size();
@@ -165,16 +181,13 @@ namespace nsgaii
       return fronts;
    }
 
-   void ScheduleNsgaii::crowdingSorting(std::vector<std::vector<int>>& fronts)
-   {
-      for (auto& front : fronts) 
-      {
+   void ScheduleNsgaii::crowdingSorting(std::vector<std::vector<int>>& fronts) {
+      for (auto& front : fronts) {
          if (front.size() < 2) continue;
 
          std::vector<float> crowding_distance(front.size(), 0.0f);
 
-         for (size_t obj = 0; obj < 2; ++obj) 
-         {
+         for (size_t obj = 0; obj < 2; ++obj) {
             std::sort(front.begin(), front.end(), [&](int a, int b) {
                return (obj == 0) 
                   ? combind_population[a].f1 <= combind_population[b].f1
@@ -184,8 +197,7 @@ namespace nsgaii
             crowding_distance[0] = std::numeric_limits<float>::infinity();
             crowding_distance[front.size() - 1] = std::numeric_limits<float>::infinity();
 
-            for (size_t i = 1; i < front.size() - 1; ++i) 
-            {
+            for (size_t i = 1; i < front.size() - 1; ++i) {
                float diff = (obj == 0)
                   ? combind_population[front[i + 1]].f1 - combind_population[front[i - 1]].f1
                   : combind_population[front[i + 1]].f2 - combind_population[front[i - 1]].f2;
@@ -218,10 +230,8 @@ namespace nsgaii
       }
 
       std::vector<Individual> sorted_population;
-      for (const auto& front : fronts) 
-      {
-         for (int individual : front) 
-         {
+      for (const auto& front : fronts) {
+         for (int individual : front) {
             sorted_population.push_back(combind_population[individual]);
          }
       }
@@ -229,24 +239,33 @@ namespace nsgaii
       combind_population = std::move(sorted_population);
    }
 
-   std::pair<Individual, Individual> ScheduleNsgaii::rankingSelection()
-   {
+   std::pair<Individual, Individual> ScheduleNsgaii::rankingSelection() {
       std::pair<Individual, Individual> selected_parents = std::make_pair(Individual(max_charge_number), Individual(max_charge_number));
-      return selected_parents;      
+
+      std::random_device rd; // ノイズを使用したシード
+      std::mt19937 gen(rd()); // メルセンヌ・ツイスタエンジン
+      std::uniform_int_distribution<> select_dist(0, combind_population.size() - 1);
+
+      for (int i = 0; i < 2; ++i) {
+         int first = select_dist(gen);
+         int second = select_dist(gen);         
+         Individual& selected = (first <= second) ? combind_population[first] : combind_population[second];
+         (i == 0 ? selected_parents.first : selected_parents.second) = selected;
+      }
+
+      // charging_numberを比較して必要に応じて入れ替え
+      if (selected_parents.first.charging_number > selected_parents.second.charging_number) {
+         std::swap(selected_parents.first, selected_parents.second);
+      }
+
+      return selected_parents;
    }
 
-   void ScheduleNsgaii::crossover(std::pair<Individual, Individual> selected_parents)
-   {
+   void ScheduleNsgaii::mutation() {
       int a =0;
    }
 
-   void ScheduleNsgaii::mutation()
-   {
-      int a =0;
-   }
-
-   bool ScheduleNsgaii::dominating(Individual& A, Individual& B)
-   {
+   bool ScheduleNsgaii::dominating(Individual& A, Individual& B) {
       bool all_less_or_equal = (A.f1 <= B.f1 && A.f2 <= B.f2);
       bool any_less = (A.f1 < B.f1 || A.f2 < B.f2);
       return all_less_or_equal && any_less;

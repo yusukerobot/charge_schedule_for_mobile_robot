@@ -10,7 +10,7 @@ namespace nsgaii
    struct Individual
    {
       Individual(const int& chromosome_size);
-      std::vector<int> time_chromosome;
+      std::vector<float> time_chromosome;
       std::vector<int> soc_chromosome;
       float f1;
       float f2;
@@ -19,8 +19,11 @@ namespace nsgaii
       std::vector<std::array<float, 4>> T_span;
       std::vector<std::array<float, 2>> T_SOC_HiLow;
       std::vector<float> E_return;
+      std::vector<int> cycle;
       std::vector<float> soc_charging_start;
       std::vector<int> W;
+      std::vector<int> charging_position;
+      std::vector<int> return_position;
    };
 
    class ScheduleNsgaii
@@ -36,7 +39,7 @@ namespace nsgaii
       std::vector<std::vector<int>> nonDominatedSorting();
       void crowdingSorting(std::vector<std::vector<int>>& fronts);
       std::pair<Individual, Individual> rankingSelection();
-      void crossover(std::pair<Individual, Individual> selected_parents);
+      virtual std::pair<Individual, Individual> crossover(std::pair<Individual, Individual> selected_parents) = 0;
       void mutation();
       bool dominating(Individual& A, Individual& B);
 
