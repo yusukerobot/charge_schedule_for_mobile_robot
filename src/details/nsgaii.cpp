@@ -13,7 +13,6 @@ namespace nsgaii {
       T_span.resize(chromosome_size + 1);
       T_SOC_HiLow.resize(chromosome_size + 1);
       E_return.resize(chromosome_size, 0);
-      cycle.resize(chromosome_size, 0);
       soc_charging_start.resize(chromosome_size, 0);
       W.resize(chromosome_size + 1, 0);
       charging_position.resize(chromosome_size, 0);
@@ -66,7 +65,7 @@ namespace nsgaii {
       SOC_cccv = config["SOC_cccv"].as<int>();
       r_cc = config["r_cc"].as<float>();
       r_cv = config["r_cv"].as<float>();
-      q_min = config["q_min"].as<int>();
+      charging_minimum = config["charging_minimum"].as<int>();
 
       // 個体の初期化
       parents.resize(population_size, Individual(max_charge_number));

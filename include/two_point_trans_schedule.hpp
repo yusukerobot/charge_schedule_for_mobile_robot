@@ -30,17 +30,19 @@ namespace charge_schedule
         void testTwenty();
 
         int calcCycleMax(nsgaii::Individual& p1, nsgaii::Individual& p2, int& i);
-        float calcLastElapsedTime(nsgaii::Individual& individual, int& i);
+        float calcElapsedTime(nsgaii::Individual& individual, int& i);
         int calcCycle(nsgaii::Individual& individual, int& i);
         float calcTimeChromosome(int& cycle, int& last_return, int& charging_position, float elapsed_time);
         float calcSOCchargingStart(float first_soc, int& cycle, int& last_return, int& charging_position);
+        int calcTotalWork(int& cycle, int& last_return, int& charging_position);
 
         void fixAndPenalty(nsgaii::Individual& individual);
         void individualResize(nsgaii::Individual& individual, int& new_charging_number);
         
     private:
         int min_charge_number;        // 最小充電回数
-        std::vector<float> charge_timing;
+        int soc_minimum;
+        std::vector<float> T_timing;
         std::vector<float> E_timing;
         float T_cycle;  // 1回のタスクにかかる時間
         float E_cycle;  // 1回のタスクの放電量

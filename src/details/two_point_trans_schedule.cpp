@@ -6,7 +6,7 @@
 namespace charge_schedule
 {
     TwoTransProblem::TwoTransProblem(const std::string& config_file_path)
-    : nsgaii::ScheduleNsgaii(config_file_path)
+    : nsgaii::ScheduleNsgaii(config_file_path), soc_minimum(10)
     {
         for (size_t i = 0; i < visited_number; ++i)
         {
@@ -16,16 +16,16 @@ namespace charge_schedule
         float W_total = W_target * E_cycle - E_cs[0]; // 総放電量
         min_charge_number = (W_total > 0) ? std::floor(W_total / 100) : 0;
 
-        charge_timing.resize(4, 0);
-        charge_timing[0] = T_cycle - T_standby[0];               // last: 0, charge: 0, T_move[1] + T_stanby[1] + T_moe[0]だけ戻す
-        charge_timing[1] = T_cycle;                              // last: 1, charge: 1, T_cycleだけ戻す
-        charge_timing[2] = T_move[1];                            // last: 0, charge: 1, T_move[1]だけ戻す
-        charge_timing[3] = T_move[0] + T_standby[1];             // last: 1, charge: 0, T_move[0] + T_standby[1]だけ戻す
+        T_timing.resize(4, 0);
+        T_timing[0] = T_move[1] + T_standby[1] + T_move[0];     // last: 0, charge: 0
+        T_timing[1] = 0;                                        // last: 1, charge: 1
+        T_timing[2] = T_standby[1] - T_move[0];                 // last: 1, charge: 0
+        T_timing[3] = T_move[1];                                // last: 0, charge: 1
         E_timing.resize(4, 0);
-        E_timing[0] = E_cycle - E_standby[0];                    // 3.32             
-        E_timing[1] = E_cycle;                                   // 5.98
-        E_timing[2] = E_move[1];                                 // 0.83
-        E_timing[3] = E_move[0] + E_standby[1];                  // 2.49
+        E_timing[0] = E_move[1] + E_standby[1] + E_move[0];      // 3.32             
+        E_timing[1] = 0;                                         // 0
+        E_timing[2] = E_standby[1] + E_move[0];                  // 2.49
+        E_timing[3] = E_move[1];                                 // 0.83
         // testTwenty();
     }
 
@@ -41,35 +41,34 @@ namespace charge_schedule
         float elapsed_time = 0;
         int W_total = 0;
         int i = 0;
-
-        std::cout << "charging_number: " << individual.charging_number << std::endl;
         while (i < individual.charging_number)
         {
-            // charging_positionの決定
             std::uniform_int_distribution<> position_dist(0, 1);
             int charging_timing_position = position_dist(gen);
             int return_position = (charging_timing_position == 0) ? 1 : 0;
-            // cycleの決定
-            // std::cout << "individual.soc_chromosome[i - 1] - E_cs[last_return_position]: " << individual.soc_chromosome[i - 1] - E_cs[last_return_position] << std::endl;
-            int soc_zero_cycle = (i == 0) ? std::floor((100 - E_cs[charging_timing_position]) / E_cycle) : std::floor((individual.soc_chromosome[i - 1] - (E_cs[last_return_position] + E_cs[charging_timing_position])) / E_cycle);
-            std::uniform_int_distribution<> cycle_dist(0, soc_zero_cycle);
+
+            int soc_minimum_cycle  = (i == 0) ? std::floor((100 - soc_minimum - E_cs[charging_timing_position]) / E_cycle) : std::floor((individual.soc_chromosome[i - 1] - soc_minimum - (E_cs[last_return_position] + E_cs[charging_timing_position])) / E_cycle);
+            if (last_return_position == 1) {
+                soc_minimum_cycle = (i == 0) ? std::floor((100 - soc_minimum - E_cs[charging_timing_position]) / E_cycle) : std::floor((individual.soc_chromosome[i - 1] - soc_minimum - (E_cs[last_return_position] + E_standby[1] + E_cs[charging_timing_position])) / E_cycle);
+            }
+            std::uniform_int_distribution<> cycle_dist(0, soc_minimum_cycle);
             int cycle = cycle_dist(gen);
 
-            individual.cycle[i] = cycle;
-            W_total += (last_return_position == charging_timing_position && charging_timing_position  == 1) ? cycle : cycle + 1;
 
             individual.time_chromosome[i] = calcTimeChromosome(cycle, last_return_position, charging_timing_position, elapsed_time);
             individual.soc_charging_start[i] = (i == 0) ? calcSOCchargingStart(100, cycle, last_return_position, charging_timing_position) : calcSOCchargingStart(individual.soc_chromosome[i - 1] - E_cs[last_return_position], cycle, last_return_position, charging_timing_position);
-            std::cout << "cycle: " << cycle << std::endl;
-            std::cout << "soc_charging_start[i]: " << individual.soc_charging_start[i] << std::endl;
 
-            std::uniform_int_distribution<> target_SOC_dist(individual.soc_charging_start[i], 100);
+            float target_soc_min = individual.soc_charging_start[i] + charging_minimum;
+            if (target_soc_min >= 100) { target_soc_min = 100; }
+            std::uniform_int_distribution<> target_SOC_dist(target_soc_min, 100);
             individual.soc_chromosome[i] = target_SOC_dist(gen);
 
             individual.T_span[i][0] = individual.time_chromosome[i] - elapsed_time;
             individual.T_span[i][1] = T_cs[charging_timing_position];
             individual.T_span[i][2] = calcChargingTime(individual.soc_charging_start[i], individual.soc_chromosome[i]);
-            individual.T_span[i][3] = T_cs[return_position];
+            individual.T_span[i][3] = (return_position == 0) ? T_cs[return_position] : T_cs[return_position] + T_standby[1];
+
+            W_total += calcTotalWork(cycle, last_return_position, charging_timing_position);
             individual.W[i] = W_total;
             individual.E_return[i] = E_cs[return_position];
             individual.charging_position[i] = charging_timing_position;
@@ -80,7 +79,7 @@ namespace charge_schedule
             ++i;
         }
 
-        // fixAndPenalty(individual);
+        fixAndPenalty(individual);
         return individual;
     }
 
@@ -89,8 +88,26 @@ namespace charge_schedule
         for (int i = 0; i < combind_population.size(); ++i)
         {
             combind_population[i] = generateIndividual();
-            // if (combind_population[i].penalty > 0) --i;
+            if (combind_population[i].penalty > 0) --i;
         }
+        // for (auto& individual : combind_population) {
+        //     std::cout << "charging_number: " << individual.charging_number << std::endl;
+        //     std::cout << "time: ";
+        //     for (auto& time : individual.time_chromosome) {
+        //         std::cout << time << " ";
+        //     }
+        //     std::cout << std::endl;
+        //     std::cout << "soc_target: ";
+        //     for (auto& soc : individual.soc_chromosome) {
+        //         std::cout << soc << " ";
+        //     }
+        //     std::cout << std::endl;
+        //     std::cout << "W: ";
+        //     for (int& W : individual.W) {
+        //         std::cout << W << " ";
+        //     }
+        //     std::cout << std::endl;
+        // }
     }
 
     void TwoTransProblem::evaluatePopulation(std::vector<nsgaii::Individual>& population)
@@ -108,6 +125,9 @@ namespace charge_schedule
     std::pair<nsgaii::Individual, nsgaii::Individual> TwoTransProblem::crossover(std::pair<nsgaii::Individual, nsgaii::Individual> selected_parents) {
         std::pair<nsgaii::Individual, nsgaii::Individual> child = std::make_pair(nsgaii::Individual(selected_parents.first.charging_number), nsgaii::Individual(selected_parents.second.charging_number));
 
+        std::random_device rd; // ノイズを使用したシード
+        std::mt19937 gen(rd()); // メルセンヌ・ツイスタエンジン
+
         int i = 0;
         int last_return_position = 0;
         float c1_elapsed_time = 0;
@@ -116,58 +136,54 @@ namespace charge_schedule
         int c2_W_total = 0;
 
         while (i < child.first.charging_number) {
-            std::random_device rd; // ノイズを使用したシード
-            std::mt19937 gen(rd()); // メルセンヌ・ツイスタエンジン
+            std::uniform_int_distribution<> timing_dist(0, 1);
+            int charging_timing_position = timing_dist(gen);
+            int return_position = (charging_timing_position == 0) ? 1 : 0;
+
             int cycle_max = calcCycleMax(selected_parents.first, selected_parents.second, i); 
             int small_gen_cycle = std::min(calcCycle(selected_parents.first, i), calcCycle(selected_parents.second, i));
             int big_gen_cycle = std::max(calcCycle(selected_parents.first, i), calcCycle(selected_parents.second, i));
             int cycle_min = small_gen_cycle - std::abs(cycle_max - big_gen_cycle);
+            std::pair<int, int> cycle = sbx(calcCycle(selected_parents.first, i), calcCycle(selected_parents.second, i), cycle_min, cycle_max, 0.5);
 
-            std::pair<int, int> generated_cycle = sbx(calcCycle(selected_parents.first, i), calcCycle(selected_parents.second, i), cycle_min, cycle_max, 0.5);
-            std::uniform_int_distribution<> timing_dist(0, 1);
-            int charge_timing_position = timing_dist(gen);
-            int return_position = (charge_timing_position == 0) ? 1 : 0;
-
-            child.first.cycle[i] = generated_cycle.first;
-            c1_W_total += (last_return_position == charge_timing_position && charge_timing_position == 1) ? generated_cycle.first : generated_cycle.first + 1;
-            child.second.cycle[i] = generated_cycle.second;
-            c2_W_total += (last_return_position == charge_timing_position && charge_timing_position == 1) ? generated_cycle.second : generated_cycle.second + 1;
-
-            child.first.time_chromosome[i] = calcTimeChromosome(generated_cycle.first, last_return_position, charge_timing_position, calcLastElapsedTime(selected_parents.first, i));
-            child.second.time_chromosome[i] = calcTimeChromosome(generated_cycle.second, last_return_position, charge_timing_position, calcLastElapsedTime(selected_parents.second, i));
+            child.first.time_chromosome[i] = calcTimeChromosome(cycle.first, last_return_position, charging_timing_position, calcElapsedTime(selected_parents.first, i));
+            child.second.time_chromosome[i] = calcTimeChromosome(cycle.second, last_return_position, charging_timing_position, calcElapsedTime(selected_parents.second, i));
             
-            if (i == 0) {
-                child.first.soc_charging_start[i] = 100 - (((child.first.time_chromosome[i] - c1_elapsed_time) / T_cycle) * E_cycle + E_cs[charge_timing_position]);
-                child.second.soc_charging_start[i] = 100 - (((child.second.time_chromosome[i] - c2_elapsed_time) / T_cycle) * E_cycle + E_cs[charge_timing_position]);
-            } else {
-                child.first.soc_charging_start[i] = child.first.soc_chromosome[i - 1] - (E_cs[last_return_position] + ((child.first.time_chromosome[i] - c1_elapsed_time) / T_cycle) * E_cycle + E_cs[charge_timing_position]);
-                child.second.soc_charging_start[i] = child.second.soc_chromosome[i - 1] - (E_cs[last_return_position] + ((child.second.time_chromosome[i] - c2_elapsed_time) / T_cycle) * E_cycle + E_cs[charge_timing_position]);
-            }
+            child.first.soc_charging_start[i] = (i == 0) ? calcSOCchargingStart(100, cycle.first, last_return_position, charging_timing_position) : calcSOCchargingStart(child.first.soc_chromosome[i - 1] - E_cs[last_return_position], cycle.first, last_return_position, charging_timing_position);
+            child.second.soc_charging_start[i] = (i == 0) ? calcSOCchargingStart(100, cycle.second, last_return_position, charging_timing_position) : calcSOCchargingStart(child.second.soc_chromosome[i - 1] - E_cs[last_return_position], cycle.second, last_return_position, charging_timing_position);
 
-            std::uniform_int_distribution<> c1_target_SOC_dist(child.first.soc_charging_start[i], 100);
-            std::uniform_int_distribution<> c2_target_SOC_dist(child.second.soc_charging_start[i], 100);
+            float c1_target_soc_min = child.first.soc_charging_start[i] + charging_minimum;
+            float c2_target_soc_min = child.second.soc_charging_start[i] + charging_minimum;
+            
+            if (c1_target_soc_min >= 100) { c1_target_soc_min = 100; }
+            if (c2_target_soc_min >= 100) { c2_target_soc_min = 100; }
+
+            std::uniform_int_distribution<> c1_target_SOC_dist(c1_target_soc_min, 100);
+            std::uniform_int_distribution<> c2_target_SOC_dist(c2_target_soc_min, 100);
             child.first.soc_chromosome[i] = c1_target_SOC_dist(gen);
             child.second.soc_chromosome[i] = c2_target_SOC_dist(gen);
 
             child.first.T_span[i][0] = child.first.time_chromosome[i] - c1_elapsed_time;
-            child.first.T_span[i][1] = T_move[charge_timing_position];
+            child.first.T_span[i][1] = T_move[charging_timing_position];
             child.first.T_span[i][2] = calcChargingTime(child.first.soc_charging_start[i], child.first.soc_chromosome[i]);
-            child.first.T_span[i][3] = T_move[return_position];
+            child.first.T_span[i][3] = (return_position == 0) ? T_cs[return_position] : T_cs[return_position] + T_standby[1];
 
+            c1_W_total += calcTotalWork(cycle.first, last_return_position, charging_timing_position);
             child.first.W[i] = c1_W_total;
             child.first.E_return[i] = E_cs[return_position];
-            child.first.charging_position[i] = charge_timing_position;
+            child.first.charging_position[i] = charging_timing_position;
             child.first.return_position[i] = return_position;
 
 
             child.second.T_span[i][0] = child.second.time_chromosome[i] - c2_elapsed_time;
-            child.second.T_span[i][1] = T_move[charge_timing_position];
+            child.second.T_span[i][1] = T_move[charging_timing_position];
             child.second.T_span[i][2] = calcChargingTime(child.second.soc_charging_start[i], child.second.soc_chromosome[i]);
-            child.second.T_span[i][3] = T_move[return_position];
+            child.second.T_span[i][3] = (return_position == 0) ? T_cs[return_position] : T_cs[return_position] + T_standby[1];
 
+            c2_W_total += calcTotalWork(cycle.second, last_return_position, charging_timing_position);
             child.second.W[i] = c2_W_total;
             child.second.E_return[i] = E_cs[return_position];
-            child.second.charging_position[i] = charge_timing_position;
+            child.second.charging_position[i] = charging_timing_position;
             child.second.return_position[i] = return_position;
 
             c1_elapsed_time += child.first.T_span[i][0] + child.first.T_span[i][1] + child.first.T_span[i][2] + child.first.T_span[i][3];
@@ -178,24 +194,33 @@ namespace charge_schedule
         while (i < child.second.charging_number) {
             std::random_device rd; // ノイズを使用したシード
             std::mt19937 gen(rd()); // メルセンヌ・ツイスタエンジン
-            std::uniform_int_distribution<> timing_dist(0, 1);
-            int charge_timing_position = timing_dist(gen);
-            int return_position = (charge_timing_position == 0) ? 1 : 0;
-            int cycle = std::floor((child.second.soc_chromosome[i - 1] - E_cs[last_return_position]) / E_cycle);
 
-            child.second.time_chromosome[i] = calcTimeChromosome(cycle, last_return_position, charge_timing_position, c2_elapsed_time);
-            child.second.soc_charging_start[i] = child.second.soc_chromosome[i - 1] - (E_cs[last_return_position] + ((child.second.time_chromosome[i] - c2_elapsed_time) / T_cycle) * E_cycle + E_cs[charge_timing_position]);
+            std::uniform_int_distribution<> timing_dist(0, 1);
+            int charging_timing_position = timing_dist(gen);
+            int return_position = (charging_timing_position == 0) ? 1 : 0;
+            
+            int soc_minimum_cycle = 0;
+            if (last_return_position == 0) {
+                soc_minimum_cycle = std::floor((child.second.soc_chromosome[i - 1] - soc_minimum - (E_cs[last_return_position] + E_cs[charging_timing_position])) / E_cycle);
+            } else {
+                soc_minimum_cycle = std::floor((child.second.soc_chromosome[i - 1] - soc_minimum - (E_cs[last_return_position] + E_standby[1] + E_cs[charging_timing_position])) / E_cycle);
+            }
+            std::uniform_int_distribution<> cycle_dist(0, soc_minimum_cycle);
+            int cycle = cycle_dist(gen);
+
+            child.second.time_chromosome[i] = calcTimeChromosome(cycle, last_return_position, charging_timing_position, c2_elapsed_time);
+            child.second.soc_charging_start[i] = child.second.soc_chromosome[i - 1] - (E_cs[last_return_position] + ((child.second.time_chromosome[i] - c2_elapsed_time) / T_cycle) * E_cycle + E_cs[charging_timing_position]);
             std::uniform_int_distribution<> c2_target_SOC_dist(child.second.soc_charging_start[i], 100);
             child.second.soc_chromosome[i] = c2_target_SOC_dist(gen);
 
             child.second.T_span[i][0] = child.second.time_chromosome[i] - c2_elapsed_time;
-            child.second.T_span[i][1] = T_move[charge_timing_position];
+            child.second.T_span[i][1] = T_move[charging_timing_position];
             child.second.T_span[i][2] = calcChargingTime(child.second.soc_charging_start[i], child.second.soc_chromosome[i]);
             child.second.T_span[i][3] = T_move[return_position];
 
             child.second.W[i] = c2_W_total;
             child.second.E_return[i] = E_cs[return_position];
-            child.second.charging_position[i] = charge_timing_position;
+            child.second.charging_position[i] = charging_timing_position;
             child.second.return_position[i] = return_position;
             
             c2_elapsed_time += child.second.T_span[i][0] + child.second.T_span[i][1] + child.second.T_span[i][2] + child.second.T_span[i][3];
@@ -210,28 +235,72 @@ namespace charge_schedule
 
     float TwoTransProblem::calcTimeChromosome(int& cycle, int& last_return, int& charging_position, float elapsed_time) {
         float time = 0;
-        if (last_return == charging_position) {
-            time = cycle * T_cycle - charge_timing[charging_position] + elapsed_time;
+        if (cycle == 0) {
+            if (last_return == charging_position) {
+                // [ last, charge ] [ 0, 0 : 1, 1 ]
+                time = (charging_position == 0) ? T_standby[0] : 0; 
+            } else {
+                // [ last, charge ] [ 1, 0 : 0, 1 ]
+                time = (charging_position == 0) ? T_move[1] + T_standby[0] : T_standby[0] + T_move[0] + T_standby[1];
+            }
         } else {
-            time = (charging_position == 0) ? cycle * T_cycle - charge_timing[2] + elapsed_time : cycle * T_cycle - charge_timing[3] + elapsed_time;
+            if (last_return == charging_position) {
+                // [ last, charge ] [ 0, 0 : 1, 1 ]
+                time = (charging_position == 0) ? cycle * T_cycle - T_timing[0] : cycle * T_cycle - T_timing[1];
+            } else {
+                // [ last, charge ] [ 1, 0 : 0, 1 ]
+                time = (charging_position == 0) ? cycle * T_cycle - T_timing[2] : cycle * T_cycle - T_timing[3];
+            }
         }
-        return time;
+        return time + elapsed_time;
     }
 
     float TwoTransProblem::calcSOCchargingStart(float first_soc, int& cycle, int& last_return, int& charging_position) {
         float soc_charging_start = 0.0f;
-        if (last_return == charging_position) {
-            soc_charging_start = (cycle == 0) ? first_soc - E_cs[charging_position] : first_soc - (cycle * E_cycle - E_timing[charging_position] + E_cs[charging_position]);
-        } else {
-            if (cycle == 0) {
-                soc_charging_start = (charging_position == 0) ? first_soc -  E_cs[charging_position] : first_soc - E_cs[charging_position];
+        if (cycle == 0) {
+            if (last_return == charging_position) {
+                // [ last, charge ] [ 0, 0 : 1, 1 ]
+                soc_charging_start = (charging_position == 0) ? first_soc - (E_standby[0] + E_cs[0]) : first_soc - E_cs[1];
             } else {
-                soc_charging_start = (charging_position == 0) ? first_soc - (cycle * E_cycle - E_timing[2] + E_cs[charging_position]) : first_soc - (cycle * E_cycle - E_timing[3] + E_cs[charging_position]);
+                // [ last, charge ] [ 1, 0 : 0, 1 ]
+                soc_charging_start = (charging_position == 0) ? first_soc - (E_move[1] + E_standby[0] + E_cs[0]) : first_soc - (E_standby[0] + E_move[0] + E_standby[1] + E_cs[1]);
+            }
+        } else {
+            if (last_return == charging_position) {
+                // [ last, charge ] [ 0, 0 : 1, 1 ]
+                soc_charging_start = (charging_position == 0) ? first_soc - (cycle * E_cycle - E_timing[0] + E_cs[0]) : first_soc - (cycle * E_cycle - E_timing[1] + E_cs[1]);
+            } else {
+                // [ last, charge ] [ 1, 0 : 0, 1 ]
+                soc_charging_start = (charging_position == 0) ? first_soc - (cycle * E_cycle - E_timing[2] + E_cs[0]) : first_soc - (cycle * E_cycle - E_timing[3] + E_cs[1]);
             }
         }
         return soc_charging_start;
     }
 
+    int TwoTransProblem::calcTotalWork(int& cycle, int& last_return, int& charging_position) {
+        int W_total = 0;
+        if (cycle == 0) {
+            if (last_return == charging_position) {
+                // [ last, charge ] [ 0, 0 : 1, 1 ]
+                W_total = 0; 
+            } else {
+                // [ last, charge ] [ 1, 0 : 0, 1 ]
+                W_total = (charging_position == 0) ? 0 : 1;
+            }
+        } else {
+            if (last_return == charging_position) {
+                // [ last, charge ] [ 0, 0 : 1, 1 ]
+                W_total = (charging_position == 0) ? cycle - 1 : cycle;
+            } else {
+                // [ last, charge ] [ 1, 0 : 0, 1 ]
+                W_total = (charging_position == 0) ? cycle - 1 : cycle;
+            }
+        }
+        if (charging_position == 0) {
+            ++W_total;
+        }
+        return W_total;
+    }
 
     int TwoTransProblem::calcCycleMax(nsgaii::Individual& p1, nsgaii::Individual& p2, int& i) {
         int cycle = std::floor(100 / E_cycle);
@@ -242,7 +311,7 @@ namespace charge_schedule
         return cycle;
     }
 
-    float TwoTransProblem::calcLastElapsedTime(nsgaii::Individual& individual, int& i) {
+    float TwoTransProblem::calcElapsedTime(nsgaii::Individual& individual, int& i) {
         float elapsed_time = 0;
         if (i != 0) {
             for (int j = 0; j < i; ++j) {
@@ -256,7 +325,7 @@ namespace charge_schedule
 
     int TwoTransProblem::calcCycle(nsgaii::Individual& individual, int& i) {
         int cycle = 0;
-        cycle = (individual.time_chromosome[i] - calcLastElapsedTime(individual, i)) / T_cycle;
+        cycle = (individual.time_chromosome[i] - calcElapsedTime(individual, i)) / T_cycle;
         return cycle;
     }
 
@@ -377,7 +446,7 @@ namespace charge_schedule
                 final_discharge = (individual.W[individual.charging_number] - individual.W[individual.charging_number - 1]) * E_cycle;
             }
             int span_size = individual.T_span.size();
-            if (calcLastElapsedTime(individual, span_size) > T_max) {
+            if (calcElapsedTime(individual, span_size) > T_max) {
                 ++individual.penalty;
             }
             if (individual.soc_chromosome[individual.charging_number - 1] - final_discharge < 0) {
@@ -385,9 +454,10 @@ namespace charge_schedule
             }
         } else {
             int new_charging_number = 0;
-            for (new_charging_number < individual.charging_number; ++new_charging_number;) {
-                if (individual.W[new_charging_number] > W_target) break;
+            for (; new_charging_number < individual.charging_number; ++new_charging_number) {
+                if (individual.W[new_charging_number] >= W_target) break;
             }
+
             individualResize(individual, new_charging_number);
             individual.T_span[new_charging_number][0] = 0;
             individual.W[new_charging_number] = 0;
@@ -401,8 +471,7 @@ namespace charge_schedule
         individual.soc_chromosome.resize(new_charging_number);
         individual.T_span.resize(new_charging_number + 1);
         individual.T_SOC_HiLow.resize(new_charging_number + 1);
-        individual.E_return.resize(new_charging_number + 1);
-        individual.cycle.resize(new_charging_number);
+        individual.E_return.resize(new_charging_number);
         individual.soc_charging_start.resize(new_charging_number);
         individual.W.resize(new_charging_number + 1);
         individual.charging_position.resize(new_charging_number);
