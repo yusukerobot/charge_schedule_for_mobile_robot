@@ -22,7 +22,7 @@ namespace charge_schedule
 
         void calucObjectiveFunction(nsgaii::Individual& individual);
         float makespan(std::vector<std::array<float, 4>>& T_span);
-        float soc_HiLowTime(std::vector<std::array<float, 2>> T_SOC_HiLow);
+        float soc_HiLowTime(std::vector<float> T_SOC_HiLow);
 
         void calcSOCHiLow(nsgaii::Individual& individual);
         float calcChargingTime(float& soc_start, int& soc_target);

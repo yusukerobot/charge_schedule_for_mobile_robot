@@ -17,7 +17,7 @@ namespace nsgaii
       int charging_number;
       int penalty;
       std::vector<std::array<float, 4>> T_span;
-      std::vector<std::array<float, 2>> T_SOC_HiLow;
+      std::vector<float> T_SOC_HiLow;
       std::vector<float> E_return;
       std::vector<float> soc_charging_start;
       std::vector<int> W;
@@ -70,6 +70,5 @@ namespace nsgaii
       float r_cc;                   // cc充電速度 [%/min]
       float r_cv;                   // cv充電速度 [%/min]
       int charging_minimum;                    // 最低充電量 [%]
-
    };
 } // namespace nsgaii

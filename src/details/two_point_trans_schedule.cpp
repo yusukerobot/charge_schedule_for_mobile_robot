@@ -75,6 +75,8 @@ namespace charge_schedule
             individual.return_position[i] = return_position;
             individual.cycle_count[i] = cycle;
 
+            // std::cout << "0: " << elapsed_time << std::endl;
+            // std::cout << "1: " << calcElapsedTime(individual, i) << std::endl;
             elapsed_time += individual.T_span[i][0] + individual.T_span[i][1] + individual.T_span[i][2] + individual.T_span[i][3];
             last_return_position = return_position;
             ++i;
@@ -84,10 +86,8 @@ namespace charge_schedule
         return individual;
     }
 
-    void TwoTransProblem::generateFirstParents()
-    {
-        for (int i = 0; i < parents.size(); ++i)
-        {
+    void TwoTransProblem::generateFirstParents() {
+        for (int i = 0; i < parents.size(); ++i) {
             parents[i] = generateIndividual();
         }
     }
@@ -130,8 +130,8 @@ namespace charge_schedule
             if (cycle_min.second < 0) cycle_min.second = 0;
             std::pair<int, int> cycle = sbx(selected_parents.first.cycle_count[i], selected_parents.second.cycle_count[i], cycle_min, cycle_max, 0.5);
 
-            child.first.time_chromosome[i] = calcTimeChromosome(cycle.first, last_return_position, charging_timing_position, calcElapsedTime(selected_parents.first, i));
-            child.second.time_chromosome[i] = calcTimeChromosome(cycle.second, last_return_position, charging_timing_position, calcElapsedTime(selected_parents.second, i));
+            child.first.time_chromosome[i] = calcTimeChromosome(cycle.first, last_return_position, charging_timing_position, calcElapsedTime(child.first, i));
+            child.second.time_chromosome[i] = calcTimeChromosome(cycle.second, last_return_position, charging_timing_position, calcElapsedTime(child.second, i));
             
             child.first.soc_charging_start[i] = (i == 0) ? calcSOCchargingStart(100, cycle.first, last_return_position, charging_timing_position) : calcSOCchargingStart(child.first.soc_chromosome[i - 1] - E_cs[last_return_position], cycle.first, last_return_position, charging_timing_position);
             child.second.soc_charging_start[i] = (i == 0) ? calcSOCchargingStart(100, cycle.second, last_return_position, charging_timing_position) : calcSOCchargingStart(child.second.soc_chromosome[i - 1] - E_cs[last_return_position], cycle.second, last_return_position, charging_timing_position);
@@ -170,6 +170,11 @@ namespace charge_schedule
             child.second.charging_position[i] = charging_timing_position;
             child.second.return_position[i] = return_position;
             child.second.cycle_count[i] = cycle.second;
+
+            // std::cout << "0: " << c1_elapsed_time << std::endl;
+            // std::cout << "1: " << calcElapsedTime(child.first, i) << std::endl;
+            // std::cout << "2: " << c2_elapsed_time << std::endl;
+            // std::cout << "3: " << calcElapsedTime(child.second, i) << std::endl;
 
             c1_elapsed_time += child.first.T_span[i][0] + child.first.T_span[i][1] + child.first.T_span[i][2] + child.first.T_span[i][3];
             c2_elapsed_time += child.second.T_span[i][0] + child.second.T_span[i][1] + child.second.T_span[i][2] + child.second.T_span[i][3];
@@ -343,25 +348,19 @@ namespace charge_schedule
     float TwoTransProblem::makespan(std::vector<std::array<float, 4>>& T_span)
     {
         float makespan = 0;
-        for (auto& span : T_span)
-        {
-            for (auto& time : span)
-            {
+        for (auto& span : T_span) {
+            for (auto& time : span) {
                 makespan += time;
             }
         }
         return makespan;
     }
 
-    float TwoTransProblem::soc_HiLowTime(std::vector<std::array<float, 2>> T_SOC_HiLow)
+    float TwoTransProblem::soc_HiLowTime(std::vector<float> T_SOC_HiLow)
     {
         float hi_low_time = 0;
-        for (auto& span : T_SOC_HiLow)
-        {
-            for (auto& time : span)
-            {
-                hi_low_time += time;
-            }
+        for (auto& time : T_SOC_HiLow) {
+            hi_low_time += time;
         }
         return hi_low_time;
     }
@@ -370,35 +369,66 @@ namespace charge_schedule
         std::array<float, 3> T_socHi = {};
         std::array<float, 3> T_socLow = {};
         float last_soc_t = 0.0f;
-        for (int i = 0; i < individual.charging_number+1; ++i) {
+        for (int i = 0; i < individual.charging_number + 1; ++i) {
             if (i == 0) {
                 last_soc_t = 100;
             } else {
                 last_soc_t = individual.soc_chromosome[i - 1];
             }
 
-            if (individual.soc_charging_start[i] <= SOC_Hi && SOC_Hi <= last_soc_t) {
+            if (SOC_Hi <= individual.soc_charging_start[i]) {
+                T_socHi[0] = individual.T_span[i][0] + individual.T_span[i][1];
+                if (T_socHi[0] < 0) { std::cout << "1: エラー" <<std::endl; }
+            } else if (individual.soc_charging_start[i] <= SOC_Hi && SOC_Hi <= last_soc_t) {
                 T_socHi[0] = ((last_soc_t - SOC_Hi) / (last_soc_t - individual.soc_charging_start[i])) * (individual.T_span[i][0] + individual.T_span[i][1]);
-            } else {T_socHi[0] = 0;}
-            if (individual.soc_charging_start[i] <= SOC_Hi && SOC_Hi <= individual.soc_chromosome[i]) {
+                if (T_socHi[0] < 0) { std::cout << "2: エラー" <<std::endl; }
+            } else {
+                T_socHi[0] = 0;
+            }
+
+
+            if (SOC_Hi <= individual.soc_charging_start[i]) {
+                T_socHi[1] = individual.T_span[i][2];
+            } else if (individual.soc_charging_start[i] <= SOC_Hi && SOC_Hi <= individual.soc_chromosome[i]) {
                 T_socHi[1] = ((individual.soc_chromosome[i] - SOC_Hi) / (individual.soc_chromosome[i] - individual.soc_charging_start[i])) * individual.T_span[i][2];
-            } else {T_socHi[1] = 0;}
-            if (individual.soc_chromosome[i] - individual.E_return[i] <= SOC_Hi && SOC_Hi <= individual.soc_chromosome[i]) {
+            } else {
+                T_socHi[1] = 0;
+            }
+
+            if (SOC_Hi <= individual.soc_chromosome[i] - individual.E_return[i]) {
+                T_socHi[2] = individual.T_span[i][3];
+            } else if (individual.soc_chromosome[i] - individual.E_return[i] <= SOC_Hi && SOC_Hi <= individual.soc_chromosome[i]) {
                 T_socHi[2] = ((individual.soc_chromosome[i] - SOC_Hi) / (individual.soc_chromosome[i] - (individual.soc_chromosome[i] - individual.E_return[i]))) * individual.T_span[i][3];
-            } else {T_socHi[2] = 0;}
-            if (individual.soc_charging_start[i] <= SOC_Low && SOC_Low <= last_soc_t) {
+            } else {
+                T_socHi[2] = 0;
+            }
+
+            if (last_soc_t <= SOC_Low) {
+                T_socLow[0] = individual.T_span[i][0] + individual.T_span[i][1];
+            } else if (individual.soc_charging_start[i] <= SOC_Low && SOC_Low <= last_soc_t) {
                 T_socLow[0] = ((SOC_Low - individual.soc_charging_start[i]) / (last_soc_t - individual.soc_charging_start[i])) * (individual.T_span[i][0] + individual.T_span[i][1]);
-            } else {T_socHi[0] = 0;}
-            if (individual.soc_charging_start[i] <= SOC_Low && SOC_Low <= individual.soc_chromosome[i]) {
+            } else {
+                T_socLow[0] = 0;
+            }
+
+            if (individual.soc_chromosome[i] <= SOC_Low) {
+                T_socLow[1] = individual.T_span[i][2];
+            } else if (individual.soc_charging_start[i] <= SOC_Low && SOC_Low <= individual.soc_chromosome[i]) {
                 T_socLow[1] = ((SOC_Low - individual.soc_charging_start[i]) / (individual.soc_chromosome[i] - individual.soc_charging_start[i])) * individual.T_span[i][2];
-            } else {T_socHi[1] = 0;}
-            if (individual.soc_chromosome[i] - individual.E_return[i] <= SOC_Low && SOC_Low <= individual.soc_chromosome[i]) {
+            } else {
+                T_socLow[1] = 0;
+            }
+
+            if (individual.soc_chromosome[i] <= SOC_Low) {
+                T_socLow[2] = individual.T_span[i][3];
+            } else if (individual.soc_chromosome[i] - individual.E_return[i] <= SOC_Low && SOC_Low <= individual.soc_chromosome[i]) {
                 T_socLow[2] = ((SOC_Low - (individual.soc_chromosome[i] - individual.E_return[i])) / (individual.soc_chromosome[i] - (individual.soc_chromosome[i] - individual.E_return[i]))) * individual.T_span[i][3];
-            } else {T_socHi[2] = 0;}
+            } else {
+                T_socLow[2] = 0;
+            }
 
             for (int j = 0; j < 3; ++j) {
-                individual.T_SOC_HiLow[i][0] += T_socHi[j];
-                individual.T_SOC_HiLow[i][1] += T_socLow[j];
+                individual.T_SOC_HiLow[i] += T_socHi[j] + T_socLow[j];
             }
         }
     }

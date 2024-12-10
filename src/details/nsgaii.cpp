@@ -167,6 +167,7 @@ namespace nsgaii {
                   --Np[dominated]; // 支配されている数を減らす
                   if (Np[dominated] == 0) {
                      next_front.push_back(dominated);
+                      population[dominated].fronts_count = current_front + 1;
                   }
                }
          }
@@ -252,22 +253,14 @@ namespace nsgaii {
 
    void ScheduleNsgaii::sortPopulation(std::vector<Individual>& population) {
       std::vector<std::vector<int>> fronts = nonDominatedSorting(population);
-      // for (auto& front : fronts) {
-      //    for (int& individual : front) {
-      //       std::cout << individual << " ";
-      //    }
-      //    std::cout << std::endl;
-      // }
-      // std::cout << "---" <<std::endl;
-
-      // for (int i = 0; i < population.size(); ++i) {
-      //    std::cout << "index: " << i << ", f1: " << population[i].f1 << ", f2: " << population[i].f2 << std::endl;
-      // }
       crowdingSorting(fronts, population);
       std::stable_sort(population.begin(), population.end(),
                   [](const Individual& a, const Individual& b) {
                         return a.penalty < b.penalty; // penaltyが少ないものを優先
                   });
+      for (auto& individual : population) {
+         individual.fronts_count += individual.penalty;
+      }
    }
 
    std::pair<Individual, Individual> ScheduleNsgaii::rankingSelection() {
