@@ -15,10 +15,10 @@ namespace charge_schedule
 
         nsgaii::Individual generateIndividual();
 
-        void generateFirstCombinedPopulation() override;
+        void generateFirstParents() override;
         void evaluatePopulation(std::vector<nsgaii::Individual>& population) override;
         std::pair<nsgaii::Individual, nsgaii::Individual> crossover(std::pair<nsgaii::Individual, nsgaii::Individual> selected_parents) override;
-        std::pair<int, int> sbx(int p1_cycle, int p2_cycle, int cycle_min, int cycle_max, float eta);
+        std::pair<int, int> sbx(int& p1_cycle, int& p2_cycle, std::pair<int, int>& cycle_min, std::pair<int, int>& cycle_max, float eta);
 
         void calucObjectiveFunction(nsgaii::Individual& individual);
         float makespan(std::vector<std::array<float, 4>>& T_span);
@@ -29,9 +29,8 @@ namespace charge_schedule
 
         void testTwenty();
 
-        int calcCycleMax(nsgaii::Individual& p1, nsgaii::Individual& p2, int& i);
+        int calcCycleMax(nsgaii::Individual& individual, int& charging_position, int& last_return_position, int& i);
         float calcElapsedTime(nsgaii::Individual& individual, int& i);
-        int calcCycle(nsgaii::Individual& individual, int& i);
         float calcTimeChromosome(int& cycle, int& last_return, int& charging_position, float elapsed_time);
         float calcSOCchargingStart(float first_soc, int& cycle, int& last_return, int& charging_position);
         int calcTotalWork(int& cycle, int& last_return, int& charging_position);

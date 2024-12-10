@@ -8,7 +8,7 @@
 
 namespace nsgaii {
    Individual::Individual(const int& chromosome_size)
-   : time_chromosome(chromosome_size, 0), soc_chromosome(chromosome_size, 0), f1(0), f2(0), charging_number(chromosome_size), penalty(0) 
+   : time_chromosome(chromosome_size, 0), soc_chromosome(chromosome_size, 0), f1(0), f2(0), charging_number(chromosome_size), penalty(0), fronts_count(0) 
    {
       T_span.resize(chromosome_size + 1);
       T_SOC_HiLow.resize(chromosome_size + 1);
@@ -17,6 +17,7 @@ namespace nsgaii {
       W.resize(chromosome_size + 1, 0);
       charging_position.resize(chromosome_size, 0);
       return_position.resize(chromosome_size, 0);
+      cycle_count.resize(chromosome_size + 1, 0);
    }
 
    ScheduleNsgaii::ScheduleNsgaii(const std::string& config_file_path) {
@@ -70,29 +71,20 @@ namespace nsgaii {
       // 個体の初期化
       parents.resize(population_size, Individual(max_charge_number));
       children.resize(population_size, Individual(max_charge_number));
-      combind_population.resize(2*population_size, Individual(2 * max_charge_number));
+      combind_population.resize(2*population_size, Individual(max_charge_number));
 
 
    }
 
    void ScheduleNsgaii::generateParents() {
-      std::vector<std::vector<int>> fronts = nonDominatedSorting();
-      // for (auto& front : fronts) {
-      //    for (int& individual : front) {
-      //       std::cout << individual << " ";
-      //    }
-      //    std::cout << std::endl;
-      // }
-      crowdingSorting(fronts);
-      for (int i = 0; i < population_size; i++)
-      {
+      for (int i = 0; i < parents.size(); i++) {
          parents[i] = combind_population[i];
       }
    }
 
    void ScheduleNsgaii::generateChildren() {
       size_t i = 0;
-      while (i < population_size) {
+      while (i < children.size()) {
          std::pair<Individual, Individual> selected_parents = rankingSelection();
          std::pair<Individual, Individual> child = crossover(selected_parents);
          // mutation();
@@ -125,6 +117,9 @@ namespace nsgaii {
          // }
          // std::cout << std::endl;
          // std::cout << "------" << std::endl;
+
+         // std::cout << child.first.penalty << std::endl;
+         // std::cout << child.second.penalty << std::endl;
       }
    }
 
@@ -135,62 +130,79 @@ namespace nsgaii {
       combind_population.insert(combind_population.end(), children.begin(), children.end());
    }
 
-   std::vector<std::vector<int>> ScheduleNsgaii::nonDominatedSorting() {
+   std::vector<std::vector<int>> ScheduleNsgaii::nonDominatedSorting(std::vector<Individual>& population) {
       std::vector<std::vector<int>> fronts;
-      std::vector<int> Np(combind_population.size(), 0);
-      std::vector<std::set<int>> Sp(combind_population.size());
+      std::vector<int> Np(population.size(), 0); // 各個体が他から支配されている数
+      std::vector<std::set<int>> Sp(population.size()); // 各個体が支配している個体のリスト
 
-      for (size_t i = 0; i < combind_population.size(); ++i) {
-         for (size_t j = 0; j < combind_population.size(); ++j) {
-            if (i == j) continue;
-            if (dominating(combind_population[i], combind_population[j])) {
-               Sp[i].insert(j);
-            } else if (dominating(combind_population[j], combind_population[i])) {
-               ++Np[i];
-            }
+      // 各個体間の支配関係を判定
+      for (size_t i = 0; i < population.size(); ++i) {
+         for (size_t j = 0; j < population.size(); ++j) {
+               if (i == j) continue;
+               if (dominating(population[i], population[j])) {
+                  Sp[i].insert(j); // i が j を支配
+               } else if (dominating(population[j], population[i])) {
+                  ++Np[i]; // j が i を支配
+               }
          }
       }
 
+      // 最初のフロントを作成
       std::vector<int> first_front;
-      for (size_t i = 0; i < combind_population.size(); ++i) {
+      for (size_t i = 0; i < population.size(); ++i) {
          if (Np[i] == 0) {
-            first_front.push_back(i);
+               first_front.push_back(i);
+               population[i].fronts_count = 0; // フロント番号を設定
          }
       }
       fronts.push_back(first_front);
 
+      // 残りのフロントを計算
       size_t current_front = 0;
       int fronts_individual_count = first_front.size();
-      while (fronts_individual_count < combind_population.size()) {
+      while (fronts_individual_count < population.size()) {
          std::vector<int> next_front;
          for (int individual : fronts[current_front]) {
-            for (int dominated : Sp[individual]) {
-               --Np[dominated];
-               if (Np[dominated] == 0) {
-                  next_front.push_back(dominated);
+               for (int dominated : Sp[individual]) {
+                  --Np[dominated]; // 支配されている数を減らす
+                  if (Np[dominated] == 0) {
+                     next_front.push_back(dominated);
+                  }
                }
-            }
          }
          if (!next_front.empty()) {
-            fronts.push_back(next_front);
-            ++current_front;
-            fronts_individual_count += next_front.size();
+               fronts.push_back(next_front);
+               ++current_front;
+               fronts_individual_count += next_front.size();
          }
       }
       return fronts;
    }
 
-   void ScheduleNsgaii::crowdingSorting(std::vector<std::vector<int>>& fronts) {
+   void ScheduleNsgaii::crowdingSorting(std::vector<std::vector<int>>& fronts, std::vector<Individual>& population) {
       for (auto& front : fronts) {
          if (front.size() < 2) continue;
 
          std::vector<float> crowding_distance(front.size(), 0.0f);
 
+         // for (int& index : front) {
+         //    std::cout << index << ", ";
+         // }
+         // std::cout << std::endl;
+
          for (size_t obj = 0; obj < 2; ++obj) {
             std::sort(front.begin(), front.end(), [&](int a, int b) {
+               if (a < 0 || a >= population.size()) {
+                  std::cerr << "Error: a (" << a << ") is out of range. Population size: " << population.size() << std::endl;
+                  throw std::out_of_range("Index 'a' is out of range in population.");
+               }
+               if (b < 0 || b >= population.size()) {
+                  std::cerr << "Error: b (" << b << ") is out of range. Population size: " << population.size() << std::endl;
+                  throw std::out_of_range("Index 'b' is out of range in population.");
+               }
                return (obj == 0) 
-                  ? combind_population[a].f1 <= combind_population[b].f1
-                  : combind_population[a].f2 <= combind_population[b].f2;
+                  ? population[a].f1 <= population[b].f1
+                  : population[a].f2 <= population[b].f2;
             });
 
             crowding_distance[0] = std::numeric_limits<float>::infinity();
@@ -198,12 +210,12 @@ namespace nsgaii {
 
             for (size_t i = 1; i < front.size() - 1; ++i) {
                float diff = (obj == 0)
-                  ? combind_population[front[i + 1]].f1 - combind_population[front[i - 1]].f1
-                  : combind_population[front[i + 1]].f2 - combind_population[front[i - 1]].f2;
+                  ? population[front[i + 1]].f1 - population[front[i - 1]].f1
+                  : population[front[i + 1]].f2 - population[front[i - 1]].f2;
 
                float range = (obj == 0)
-                  ? combind_population[front.back()].f1 - combind_population[front.front()].f1
-                  : combind_population[front.back()].f2 - combind_population[front.front()].f2;
+                  ? population[front.back()].f1 - population[front.front()].f1
+                  : population[front.back()].f2 - population[front.front()].f2;
 
                if (range > 0) {
                   crowding_distance[i] += diff / range;
@@ -231,11 +243,31 @@ namespace nsgaii {
       std::vector<Individual> sorted_population;
       for (const auto& front : fronts) {
          for (int individual : front) {
-            sorted_population.push_back(combind_population[individual]);
+            sorted_population.push_back(population[individual]);
          }
       }
       
-      combind_population = std::move(sorted_population);
+      population = std::move(sorted_population);
+   }
+
+   void ScheduleNsgaii::sortPopulation(std::vector<Individual>& population) {
+      std::vector<std::vector<int>> fronts = nonDominatedSorting(population);
+      // for (auto& front : fronts) {
+      //    for (int& individual : front) {
+      //       std::cout << individual << " ";
+      //    }
+      //    std::cout << std::endl;
+      // }
+      // std::cout << "---" <<std::endl;
+
+      // for (int i = 0; i < population.size(); ++i) {
+      //    std::cout << "index: " << i << ", f1: " << population[i].f1 << ", f2: " << population[i].f2 << std::endl;
+      // }
+      crowdingSorting(fronts, population);
+      std::stable_sort(population.begin(), population.end(),
+                  [](const Individual& a, const Individual& b) {
+                        return a.penalty < b.penalty; // penaltyが少ないものを優先
+                  });
    }
 
    std::pair<Individual, Individual> ScheduleNsgaii::rankingSelection() {
@@ -243,12 +275,12 @@ namespace nsgaii {
 
       std::random_device rd; // ノイズを使用したシード
       std::mt19937 gen(rd()); // メルセンヌ・ツイスタエンジン
-      std::uniform_int_distribution<> select_dist(0, combind_population.size() - 1);
+      std::uniform_int_distribution<> select_dist(0, parents.size() - 1);
 
       for (int i = 0; i < 2; ++i) {
          int first = select_dist(gen);
          int second = select_dist(gen);         
-         Individual& selected = (first <= second) ? combind_population[first] : combind_population[second];
+         Individual& selected = (first <= second) ? parents[first] : parents[second];
          (i == 0 ? selected_parents.first : selected_parents.second) = selected;
       }
 

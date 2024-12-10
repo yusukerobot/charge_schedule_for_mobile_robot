@@ -23,6 +23,8 @@ namespace nsgaii
       std::vector<int> W;
       std::vector<int> charging_position;
       std::vector<int> return_position;
+      std::vector<int> cycle_count;
+      int fronts_count;
    };
 
    class ScheduleNsgaii
@@ -35,14 +37,15 @@ namespace nsgaii
       void generateChildren();
       void generateCombinedPopulation();
 
-      std::vector<std::vector<int>> nonDominatedSorting();
-      void crowdingSorting(std::vector<std::vector<int>>& fronts);
+      std::vector<std::vector<int>> nonDominatedSorting(std::vector<Individual>& population);
+      void crowdingSorting(std::vector<std::vector<int>>& fronts, std::vector<Individual>& population);
+      void sortPopulation(std::vector<Individual>& population);
       std::pair<Individual, Individual> rankingSelection();
       virtual std::pair<Individual, Individual> crossover(std::pair<Individual, Individual> selected_parents) = 0;
       void mutation();
       bool dominating(Individual& A, Individual& B);
 
-      virtual void generateFirstCombinedPopulation() = 0;
+      virtual void generateFirstParents() = 0;
       virtual void evaluatePopulation(std::vector<nsgaii::Individual>& population) = 0;
       
       std::vector<Individual> parents;
