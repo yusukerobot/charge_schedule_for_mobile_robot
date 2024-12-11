@@ -18,7 +18,7 @@ namespace charge_schedule
         void generateFirstParents() override;
         void evaluatePopulation(std::vector<nsgaii::Individual>& population) override;
         std::pair<nsgaii::Individual, nsgaii::Individual> crossover(std::pair<nsgaii::Individual, nsgaii::Individual> selected_parents) override;
-        std::pair<int, int> sbx(int& p1_cycle, int& p2_cycle, std::pair<int, int>& cycle_min, std::pair<int, int>& cycle_max, float eta);
+        std::pair<int, int> sbx(int& p1, int& p2, std::pair<int, int>& gene_min, std::pair<int, int>& gene_max, float eta);
 
         void calucObjectiveFunction(nsgaii::Individual& individual);
         float makespan(std::vector<std::array<float, 4>>& T_span);
@@ -40,7 +40,7 @@ namespace charge_schedule
         
     private:
         int min_charge_number;        // 最小充電回数
-        int soc_minimum;
+        int soc_minimum;              // soc最小値
         std::vector<float> T_timing;
         std::vector<float> E_timing;
         float T_cycle;  // 1回のタスクにかかる時間
