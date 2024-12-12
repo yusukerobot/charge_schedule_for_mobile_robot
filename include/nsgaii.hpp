@@ -25,6 +25,7 @@ namespace nsgaii
       std::vector<int> return_position;
       std::vector<int> cycle_count;
       int fronts_count;
+      int first_soc;
    };
 
    class ScheduleNsgaii

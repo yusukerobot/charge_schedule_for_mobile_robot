@@ -36,6 +36,7 @@ namespace charge_schedule
         int calcTotalWork(int& cycle, int& last_return, int& charging_position);
 
         void fixAndPenalty(nsgaii::Individual& individual);
+        void additionalGen(nsgaii::Individual& individual);
         void individualResize(nsgaii::Individual& individual, int& new_charging_number);
         
     private:

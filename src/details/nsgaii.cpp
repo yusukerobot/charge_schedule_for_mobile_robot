@@ -8,7 +8,7 @@
 
 namespace nsgaii {
    Individual::Individual(const int& chromosome_size)
-   : time_chromosome(chromosome_size, 0), soc_chromosome(chromosome_size, 0), f1(0), f2(0), charging_number(chromosome_size), penalty(0), fronts_count(0) 
+   : time_chromosome(chromosome_size, 0), soc_chromosome(chromosome_size, 0), f1(0), f2(0), charging_number(chromosome_size), penalty(0), fronts_count(0), first_soc(100) 
    {
       T_span.resize(chromosome_size + 1);
       T_SOC_HiLow.resize(chromosome_size + 1);
@@ -92,31 +92,116 @@ namespace nsgaii {
          children[i + 1] = child.second;
          i += 2;
 
-         // std::cout << "--- selected parents ---" << std::endl;
-         // std::cout << "first: ";
-         // for (float& time : selected_parents.first.time_chromosome) {
-         //    std::cout << time << " ";
-         // }
-         // std::cout << std::endl;
-         // std::cout << "second: ";
-         // for (float& time : selected_parents.second.time_chromosome) {
-         //    std::cout << time << " ";
-         // }
-         // std::cout << std::endl;
-         // std::cout << "------" << std::endl;
+         std::cout << "--- selected parents ---" << std::endl;
 
-         // std::cout << "--- child ---" << std::endl;
-         // std::cout << "first: ";
-         // for (float& time : child.first.time_chromosome) {
-         //    std::cout << time << " ";
-         // }
-         // std::cout << std::endl;
-         // std::cout << "second: ";
-         // for (float& time : child.second.time_chromosome) {
-         //    std::cout << time << " ";
-         // }
-         // std::cout << std::endl;
-         // std::cout << "------" << std::endl;
+         std::cout << "first " << std::endl;
+         std::cout << "  time: ";
+         for (float& time : selected_parents.first.time_chromosome) {
+            std::cout << time << " ";
+         }
+         std::cout << std::endl;
+         std::cout << "  soc: ";
+         for (auto& soc : selected_parents.first.soc_chromosome) {
+            std::cout << soc << " ";
+         }
+         std::cout << std::endl;
+         std::cout << "  W: ";
+         for (auto& W : selected_parents.first.W) {
+            std::cout << W << " ";
+         }
+         std::cout << std::endl;
+         std::cout << "  T_span: ";
+         for (auto& span : selected_parents.first.T_span) {
+            float elapsed_time = 0;
+            for (auto& time : span) {
+               elapsed_time += time;
+            }
+            std::cout << elapsed_time << " ";
+         }
+         std::cout << std::endl;
+         std::cout << "  f1: " << selected_parents.first.f1 << ", f2: "<< selected_parents.first.f2 << std::endl;
+
+         std::cout << "second "<< std::endl;
+         std::cout << "  time: ";
+         for (float& time : selected_parents.second.time_chromosome) {
+            std::cout << time << " ";
+         }
+         std::cout << std::endl;
+         std::cout << "  soc: ";
+         for (auto& soc : selected_parents.second.soc_chromosome) {
+            std::cout << soc << " ";
+         }
+         std::cout << std::endl;
+         std::cout << "  W: ";
+         for (auto& W : selected_parents.second.W) {
+            std::cout << W << " ";
+         }
+         std::cout << std::endl;
+         std::cout << "  T_span: ";
+         for (auto& span : selected_parents.second.T_span) {
+            float elapsed_time = 0;
+            for (auto& time : span) {
+               elapsed_time += time;
+            }
+            std::cout << elapsed_time << " ";
+         }
+         std::cout << std::endl;
+         std::cout << "  f1: " << selected_parents.second.f1 << ", f2: "<< selected_parents.second.f2 << std::endl;
+         std::cout << "------" << std::endl;
+
+         std::cout << "--- child ---" << std::endl;
+         std::cout << "first: " << std::endl;
+         std::cout << "  time: ";
+         for (float& time : child.first.time_chromosome) {
+            std::cout << time << " ";
+         }
+         std::cout << std::endl;
+         std::cout << "  soc: ";
+         for (auto& soc : child.first.soc_chromosome) {
+            std::cout << soc << " ";
+         }
+         std::cout << std::endl;
+         std::cout << "  W: ";
+         for (auto& W : child.first.W) {
+            std::cout << W << " ";
+         }
+         std::cout << std::endl;
+         std::cout << "  T_span: ";
+         for (auto& span : child.first.T_span) {
+            float elapsed_time = 0;
+            for (auto& time : span) {
+               elapsed_time += time;
+            }
+            std::cout << elapsed_time << " ";
+         }
+         std::cout << std::endl;
+
+         std::cout << "second: " << std::endl;
+         std::cout << "  time: ";
+         for (float& time : child.second.time_chromosome) {
+            std::cout << time << " ";
+         }
+         std::cout << std::endl;
+         std::cout << "  soc: ";
+         for (auto& soc : child.second.soc_chromosome) {
+            std::cout << soc << " ";
+         }
+         std::cout << std::endl;
+         std::cout << "  W: ";
+         for (auto& W : child.second.W) {
+            std::cout << W << " ";
+         }
+         std::cout << std::endl;
+         std::cout << "  T_span: ";
+         for (auto& span : child.second.T_span) {
+            float elapsed_time = 0;
+            for (auto& time : span) {
+               elapsed_time += time;
+            }
+            std::cout << elapsed_time << " ";
+         }
+         std::cout << std::endl;
+         std::cout << "------" << std::endl;
 
          // std::cout << child.first.penalty << std::endl;
          // std::cout << child.second.penalty << std::endl;

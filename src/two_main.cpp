@@ -26,15 +26,30 @@ int main()
     // int max_generation = 100;
     // while (current_generation < max_generation) {
         csvDebugParents(nsgaii->parents, current_generation, base_csv_file_path);
-    //     nsgaii->generateChildren();
-    //     nsgaii->evaluatePopulation(nsgaii->children);
-    //     // csvDebugParents(nsgaii->children, current_generation, base_csv_file_path);
+        nsgaii->generateChildren();
+        nsgaii->evaluatePopulation(nsgaii->children);
+        csvDebugParents(nsgaii->children, current_generation, base_csv_file_path);
 
-    //     nsgaii->generateCombinedPopulation();
-    //     nsgaii->sortPopulation(nsgaii->combind_population);
-    //     nsgaii->generateParents();
-    //     nsgaii->sortPopulation(nsgaii->parents);
-    //     ++current_generation;
+        std::cout << "--- child ---" << std::endl;
+         for (auto& individual : nsgaii->children) {
+            std::cout << "  time: ";
+            for (auto& time : individual.time_chromosome) {
+                std::cout << time << " ";
+            }
+            std::cout << std::endl;
+            std::cout << "  soc: ";
+            for (auto& soc : individual.soc_chromosome) {
+                std::cout << soc << " ";
+            }
+            std::cout << std::endl;
+            std::cout << "  f1: " << individual.f1 << ", f2: "<< individual.f2 << std::endl;
+         }
+
+        // nsgaii->generateCombinedPopulation();
+        // nsgaii->sortPopulation(nsgaii->combind_population);
+        // nsgaii->generateParents();
+        // nsgaii->sortPopulation(nsgaii->parents);
+        // ++current_generation;
     // }
     // csvDebugParents(nsgaii->parents, current_generation, base_csv_file_path);
 
@@ -67,16 +82,16 @@ void csvDebugParents(std::vector<nsgaii::Individual>& parents, int& generations,
     //     }
     // }
 
-    for (int i = 0; i < parents.size(); ++i) {
-        csvFile << parents[i].f1 << "," << parents[i].f2 << "," <<parents[i].fronts_count << "\n";
-    }
+    // for (int i = 0; i < parents.size(); ++i) {
+    //     csvFile << parents[i].f1 << "," << parents[i].f2 << "," <<parents[i].fronts_count << "\n";
+    // }
 
     // if (generations == 0 || generations == 99){
     //     csvFile << "第" << generations << "世代\n";
     //     csvFile << "f1" << "," << "f2\n";
-    //     for (const auto& individual : parents) {
-    //         csvFile << individual.f1 << "," << individual.f2 << "," << individual.fronts_count << "\n";
-    //     }
+        for (const auto& individual : parents) {
+            csvFile << individual.f1 << "," << individual.f2 << "," << individual.fronts_count << "\n";
+        }
     // }
 
     csvFile.close();
