@@ -35,7 +35,7 @@ namespace nsgaii
       virtual ~ScheduleNsgaii() = default;
 
       void generateParents();
-      void generateChildren();
+      virtual void generateChildren();
       void generateCombinedPopulation();
 
       std::vector<std::vector<int>> nonDominatedSorting(std::vector<Individual>& population);
