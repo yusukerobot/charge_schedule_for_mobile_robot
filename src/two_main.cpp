@@ -25,13 +25,13 @@ int main()
 
     // int max_generation = 100;
     // while (current_generation < max_generation) {
-        csvDebugParents(nsgaii->parents, current_generation, base_csv_file_path);
+        // csvDebugParents(nsgaii->parents, current_generation, base_csv_file_path);
         nsgaii->generateChildren();
         nsgaii->evaluatePopulation(nsgaii->children);
-        csvDebugParents(nsgaii->children, current_generation, base_csv_file_path);
+        // csvDebugParents(nsgaii->children, current_generation, base_csv_file_path);
 
-        // std::cout << "--- child ---" << std::endl;
-        //  for (auto& individual : nsgaii->children) {
+        std::cout << "--- child ---" << std::endl;
+         for (auto& individual : nsgaii->children) {
         //     std::cout << "  time: ";
         //     for (auto& time : individual.time_chromosome) {
         //         std::cout << time << " ";
@@ -41,9 +41,9 @@ int main()
         //     for (auto& soc : individual.soc_chromosome) {
         //         std::cout << soc << " ";
         //     }
-        //     std::cout << std::endl;
-        //     std::cout << "  f1: " << individual.f1 << ", f2: "<< individual.f2 << std::endl;
-        //  }
+            std::cout << std::endl;
+            std::cout << "  f1: " << individual.f1 << ", f2: "<< individual.f2 << std::endl;
+         }
 
         // nsgaii->generateCombinedPopulation();
         // nsgaii->sortPopulation(nsgaii->combind_population);

@@ -109,26 +109,26 @@ namespace charge_schedule
             std::cout << time << " ";
          }
          std::cout << std::endl;
-        //  std::cout << "  soc: ";
-        //  for (auto& soc : selected_parents.first.soc_chromosome) {
-        //     std::cout << soc << " ";
-        //  }
-        //  std::cout << std::endl;
-        //  std::cout << "  W: ";
-        //  for (auto& W : selected_parents.first.W) {
-        //     std::cout << W << " ";
-        //  }
-        //  std::cout << std::endl;
-        //  std::cout << "  T_span: ";
-        //  for (auto& span : selected_parents.first.T_span) {
-        //     float elapsed_time = 0;
-        //     for (auto& time : span) {
-        //        elapsed_time += time;
-        //     }
-        //     std::cout << elapsed_time << " ";
-        //  }
-        //  std::cout << std::endl;
-        //  std::cout << "  f1: " << selected_parents.first.f1 << ", f2: "<< selected_parents.first.f2 << std::endl;
+         std::cout << "  soc: ";
+         for (auto& soc : selected_parents.first.soc_chromosome) {
+            std::cout << soc << " ";
+         }
+         std::cout << std::endl;
+         std::cout << "  W: ";
+         for (auto& W : selected_parents.first.W) {
+            std::cout << W << " ";
+         }
+         std::cout << std::endl;
+         std::cout << "  T_span: ";
+         for (auto& span : selected_parents.first.T_span) {
+            float elapsed_time = 0;
+            for (auto& time : span) {
+               elapsed_time += time;
+            }
+            std::cout << elapsed_time << " ";
+         }
+         std::cout << std::endl;
+         std::cout << "  f1: " << selected_parents.first.f1 << ", f2: "<< selected_parents.first.f2 << std::endl;
 
          std::cout << "second "<< std::endl;
          std::cout << "  time: ";
@@ -136,26 +136,26 @@ namespace charge_schedule
             std::cout << time << " ";
          }
          std::cout << std::endl;
-        //  std::cout << "  soc: ";
-        //  for (auto& soc : selected_parents.second.soc_chromosome) {
-        //     std::cout << soc << " ";
-        //  }
-        //  std::cout << std::endl;
-        //  std::cout << "  W: ";
-        //  for (auto& W : selected_parents.second.W) {
-        //     std::cout << W << " ";
-        //  }
-        //  std::cout << std::endl;
-        //  std::cout << "  T_span: ";
-        //  for (auto& span : selected_parents.second.T_span) {
-        //     float elapsed_time = 0;
-        //     for (auto& time : span) {
-        //        elapsed_time += time;
-        //     }
-        //     std::cout << elapsed_time << " ";
-        //  }
-        //  std::cout << std::endl;
-        //  std::cout << "  f1: " << selected_parents.second.f1 << ", f2: "<< selected_parents.second.f2 << std::endl;
+         std::cout << "  soc: ";
+         for (auto& soc : selected_parents.second.soc_chromosome) {
+            std::cout << soc << " ";
+         }
+         std::cout << std::endl;
+         std::cout << "  W: ";
+         for (auto& W : selected_parents.second.W) {
+            std::cout << W << " ";
+         }
+         std::cout << std::endl;
+         std::cout << "  T_span: ";
+         for (auto& span : selected_parents.second.T_span) {
+            float elapsed_time = 0;
+            for (auto& time : span) {
+               elapsed_time += time;
+            }
+            std::cout << elapsed_time << " ";
+         }
+         std::cout << std::endl;
+         std::cout << "  f1: " << selected_parents.second.f1 << ", f2: "<< selected_parents.second.f2 << std::endl;
          std::cout << "------" << std::endl;
 
          std::cout << "--- child ---" << std::endl;
@@ -165,25 +165,25 @@ namespace charge_schedule
             std::cout << time << " ";
          }
          std::cout << std::endl;
-        //  std::cout << "  soc: ";
-        //  for (auto& soc : child.first.soc_chromosome) {
-        //     std::cout << soc << " ";
-        //  }
-        //  std::cout << std::endl;
-        //  std::cout << "  W: ";
-        //  for (auto& W : child.first.W) {
-        //     std::cout << W << " ";
-        //  }
-        //  std::cout << std::endl;
-        //  std::cout << "  T_span: ";
-        //  for (auto& span : child.first.T_span) {
-        //     float elapsed_time = 0;
-        //     for (auto& time : span) {
-        //        elapsed_time += time;
-        //     }
-        //     std::cout << elapsed_time << " ";
-        //  }
-        //  std::cout << std::endl;
+         std::cout << "  soc: ";
+         for (auto& soc : child.first.soc_chromosome) {
+            std::cout << soc << " ";
+         }
+         std::cout << std::endl;
+         std::cout << "  W: ";
+         for (auto& W : child.first.W) {
+            std::cout << W << " ";
+         }
+         std::cout << std::endl;
+         std::cout << "  T_span: ";
+         for (auto& span : child.first.T_span) {
+            float elapsed_time = 0;
+            for (auto& time : span) {
+               elapsed_time += time;
+            }
+            std::cout << elapsed_time << " ";
+         }
+         std::cout << std::endl;
 
          std::cout << "second: " << std::endl;
          std::cout << "  time: ";
@@ -191,25 +191,25 @@ namespace charge_schedule
             std::cout << time << " ";
          }
          std::cout << std::endl;
-        //  std::cout << "  soc: ";
-        //  for (auto& soc : child.second.soc_chromosome) {
-        //     std::cout << soc << " ";
-        //  }
-        //  std::cout << std::endl;
-        //  std::cout << "  W: ";
-        //  for (auto& W : child.second.W) {
-        //     std::cout << W << " ";
-        //  }
-        //  std::cout << std::endl;
-        //  std::cout << "  T_span: ";
-        //  for (auto& span : child.second.T_span) {
-        //     float elapsed_time = 0;
-        //     for (auto& time : span) {
-        //        elapsed_time += time;
-        //     }
-        //     std::cout << elapsed_time << " ";
-        //  }
-        //  std::cout << std::endl;
+         std::cout << "  soc: ";
+         for (auto& soc : child.second.soc_chromosome) {
+            std::cout << soc << " ";
+         }
+         std::cout << std::endl;
+         std::cout << "  W: ";
+         for (auto& W : child.second.W) {
+            std::cout << W << " ";
+         }
+         std::cout << std::endl;
+         std::cout << "  T_span: ";
+         for (auto& span : child.second.T_span) {
+            float elapsed_time = 0;
+            for (auto& time : span) {
+               elapsed_time += time;
+            }
+            std::cout << elapsed_time << " ";
+         }
+         std::cout << std::endl;
          std::cout << "------" << std::endl;
 
          // std::cout << child.first.penalty << std::endl;
@@ -382,20 +382,24 @@ namespace charge_schedule
             std::pair<int, int>c1_cycle_posit = timeToCycleAndPosition(target_time.first, c1_last_return_position, c1_elapsed_time);
             std::pair<int, int>c2_cycle_posit = timeToCycleAndPosition(target_time.second, c2_last_return_position, c2_elapsed_time);
             std::pair<int, int> cycle = std::make_pair(c1_cycle_posit.first, c2_cycle_posit.first);
-            std::cout << "p1 cycle: " << selected_parents.first.cycle_count[i] << std::endl;
-            std::cout << "p2 cycle: " << selected_parents.second.cycle_count[i] << std::endl;
-            std::cout << "c1 cycle: " << c1_cycle_posit.first << std::endl;
-            std::cout << "c2 cycle: " << c2_cycle_posit.first << std::endl;
             int c1_charging_timing_position = c1_cycle_posit.second;
             int c1_return_position = (c1_charging_timing_position == 0) ? 1 : 0;
             int c2_charging_timing_position = c2_cycle_posit.second;
             int c2_return_position = (c2_charging_timing_position == 0) ? 1 : 0;
+            // std::cout << "p1 cycle: " << selected_parents.first.cycle_count[i] << std::endl;
+            // std::cout << "p2 cycle: " << selected_parents.second.cycle_count[i] << std::endl;
+            // std::cout << "c1 cycle: " << c1_cycle_posit.first << std::endl;
+            // std::cout << "c2 cycle: " << c2_cycle_posit.first << std::endl;
+            // std::cout << "p1 position: " << selected_parents.first.charging_position[i] << std::endl;
+            // std::cout << "p2 position: " << selected_parents.second.charging_position[i] << std::endl;
+            // std::cout << "c1 position: " << c1_charging_timing_position << std::endl;
+            // std::cout << "c2 position: " << c2_charging_timing_position << std::endl;
             
-            child.first.time_chromosome[i] = calcTimeChromosome(cycle.first, c1_last_return_position, c1_charging_timing_position, calcElapsedTime(child.first, i));
-            child.second.time_chromosome[i] = calcTimeChromosome(cycle.second, c2_last_return_position, c2_charging_timing_position, calcElapsedTime(child.second, i));
+            child.first.time_chromosome[i] = calcTimeChromosome(cycle.first, c1_last_return_position, c1_charging_timing_position, c1_elapsed_time);
+            child.second.time_chromosome[i] = calcTimeChromosome(cycle.second, c2_last_return_position, c2_charging_timing_position, c2_elapsed_time);
             
             child.first.soc_charging_start[i] = (i == 0) ? calcSOCchargingStart(child.first.first_soc, cycle.first, c1_last_return_position, c1_charging_timing_position) : calcSOCchargingStart(child.first.soc_chromosome[i - 1] - E_cs[c1_last_return_position], cycle.first, c1_last_return_position, c1_charging_timing_position);
-            child.second.soc_charging_start[i] = (i == 0) ? calcSOCchargingStart(child.first.first_soc, cycle.second, c2_last_return_position, c2_charging_timing_position) : calcSOCchargingStart(child.second.soc_chromosome[i - 1] - E_cs[c2_last_return_position], cycle.second, c2_last_return_position, c2_charging_timing_position);
+            child.second.soc_charging_start[i] = (i == 0) ? calcSOCchargingStart(child.second.first_soc, cycle.second, c2_last_return_position, c2_charging_timing_position) : calcSOCchargingStart(child.second.soc_chromosome[i - 1] - E_cs[c2_last_return_position], cycle.second, c2_last_return_position, c2_charging_timing_position);
 
             int c1_target_soc_min = std::floor(child.first.soc_charging_start[i] + charging_minimum);
             int c2_target_soc_min = std::floor(child.second.soc_charging_start[i] + charging_minimum);
@@ -480,40 +484,29 @@ namespace charge_schedule
 
     std::pair<int, int> TwoTransProblem::timeToCycleAndPosition(float& target_time, int& last_return_position, float& elapsed_time) {
         float time = target_time - elapsed_time;
-        // std::cout << "target_time: " << target_time << std::endl;
-        // std::cout << "time: " << time << std::endl;
         int cycle = std::floor(time / T_cycle) + 1;
         int position = 0;
+
         if (last_return_position == 0) {
-            // timeが荷物を積み終えない時間
-            if ((time / T_cycle) - std::floor(time / T_cycle) < T_standby[0] / T_cycle) {
-                position = 1;
-                --cycle;
-                if (cycle == 0) {
-                    position = 0;
-                }
-            }
-            // timeが荷物を積んだ後、おろし終えない時間
-            else if (T_standby[0] / T_cycle <= (time / T_cycle) - std::floor(time / T_cycle) && (time / T_cycle) - std::floor(time / T_cycle) < (T_cycle - T_move[1]) / T_cycle) {
+            if (std::fmod(time, T_cycle) <= (T_cycle / 4) + (T_standby[0] / T_cycle) || (3*T_cycle / 4) + (T_standby[1] / T_cycle) < std::fmod(time, T_cycle)) {
                 position = 0;
-            } 
-            // timeが荷物をおろし終え、position:0へ移動し終えない時間
-            else {
+            } else {
                 position = 1;
             }
         } else {
-            // timeがT_cycleで割り切れる場合
-            if (time / T_cycle == std::floor(time / T_cycle)) {
-                cycle = time / T_cycle;
+            if (std::fmod(time, T_cycle) <= (T_cycle / 4) + (T_standby[1] / T_cycle)) {
                 position = 1;
-            } 
-            // timeが荷物を積み終えない時間
-            else if ((time / T_cycle) - std::floor(time / T_cycle) < (T_move[1] + T_standby[0]) / T_cycle) {
+                --cycle;
+            } else if ((3*T_cycle / 4) + (T_standby[0] / T_cycle) < std::fmod(time, T_cycle)) {
                 position = 1;
             }
             else {
                 position = 0;
             }
+        }
+
+        if (position == last_return_position == 1 && time < T_cycle) {
+            cycle = 0;
         }
 
         return std::make_pair(cycle, position);
@@ -675,33 +668,27 @@ namespace charge_schedule
     float TwoTransProblem::soc_HiLowTime(std::vector<float> T_SOC_HiLow)
     {
         float hi_low_time = 0;
+        std::cout << "T_SOC_HiLow: ";
         for (auto& time : T_SOC_HiLow) {
             hi_low_time += time;
+            std::cout << time << " ";
         }
+        std::cout << std::endl;
         return hi_low_time;
     }
 
     void TwoTransProblem::calcSOCHiLow(nsgaii::Individual& individual) {
         std::array<float, 3> T_socHi = {};
         std::array<float, 3> T_socLow = {};
-        float last_soc_t = 0.0f;
+        float last_soc_t = individual.first_soc;
         for (int i = 0; i < individual.charging_number + 1; ++i) {
-            if (i == 0) {
-                last_soc_t = 100;
-            } else {
-                last_soc_t = individual.soc_chromosome[i - 1];
-            }
-
             if (SOC_Hi <= individual.soc_charging_start[i]) {
                 T_socHi[0] = individual.T_span[i][0] + individual.T_span[i][1];
-                if (T_socHi[0] < 0) { std::cout << "1: エラー" <<std::endl; }
             } else if (individual.soc_charging_start[i] <= SOC_Hi && SOC_Hi <= last_soc_t) {
                 T_socHi[0] = ((last_soc_t - SOC_Hi) / (last_soc_t - individual.soc_charging_start[i])) * (individual.T_span[i][0] + individual.T_span[i][1]);
-                if (T_socHi[0] < 0) { std::cout << "2: エラー" <<std::endl; }
             } else {
                 T_socHi[0] = 0;
             }
-
 
             if (SOC_Hi <= individual.soc_charging_start[i]) {
                 T_socHi[1] = individual.T_span[i][2];
@@ -746,6 +733,8 @@ namespace charge_schedule
             for (int j = 0; j < 3; ++j) {
                 individual.T_SOC_HiLow[i] += T_socHi[j] + T_socLow[j];
             }
+
+            last_soc_t = individual.soc_chromosome[i];
         }
     }
 
@@ -771,9 +760,15 @@ namespace charge_schedule
             float final_discharge = 0;
             if (individual.return_position[individual.charging_number - 1] == 0) {
                 individual.T_span[individual.charging_number][0] = (individual.W[individual.charging_number] - individual.W[individual.charging_number - 1]) * T_cycle - T_move[1];
+                individual.T_span[individual.charging_number][1] = 0;
+                individual.T_span[individual.charging_number][2] = 0;
+                individual.T_span[individual.charging_number][3] = 0;
                 final_discharge = (individual.W[individual.charging_number] - individual.W[individual.charging_number - 1]) * E_cycle - E_move[1];
             } else {
                 individual.T_span[individual.charging_number][0] = (individual.W[individual.charging_number] - individual.W[individual.charging_number - 1]) * T_cycle;
+                individual.T_span[individual.charging_number][1] = 0;
+                individual.T_span[individual.charging_number][2] = 0;
+                individual.T_span[individual.charging_number][3] = 0;
                 final_discharge = (individual.W[individual.charging_number] - individual.W[individual.charging_number - 1]) * E_cycle;
             }
             int span_size = individual.T_span.size();
