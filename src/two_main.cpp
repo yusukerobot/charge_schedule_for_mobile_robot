@@ -30,20 +30,20 @@ int main()
         nsgaii->evaluatePopulation(nsgaii->children);
         csvDebugParents(nsgaii->children, current_generation, base_csv_file_path);
 
-        std::cout << "--- child ---" << std::endl;
-         for (auto& individual : nsgaii->children) {
-            std::cout << "  time: ";
-            for (auto& time : individual.time_chromosome) {
-                std::cout << time << " ";
-            }
-            std::cout << std::endl;
-            std::cout << "  soc: ";
-            for (auto& soc : individual.soc_chromosome) {
-                std::cout << soc << " ";
-            }
-            std::cout << std::endl;
-            std::cout << "  f1: " << individual.f1 << ", f2: "<< individual.f2 << std::endl;
-         }
+        // std::cout << "--- child ---" << std::endl;
+        //  for (auto& individual : nsgaii->children) {
+        //     std::cout << "  time: ";
+        //     for (auto& time : individual.time_chromosome) {
+        //         std::cout << time << " ";
+        //     }
+        //     std::cout << std::endl;
+        //     std::cout << "  soc: ";
+        //     for (auto& soc : individual.soc_chromosome) {
+        //         std::cout << soc << " ";
+        //     }
+        //     std::cout << std::endl;
+        //     std::cout << "  f1: " << individual.f1 << ", f2: "<< individual.f2 << std::endl;
+        //  }
 
         // nsgaii->generateCombinedPopulation();
         // nsgaii->sortPopulation(nsgaii->combind_population);
