@@ -35,13 +35,14 @@ namespace nsgaii
       virtual ~ScheduleNsgaii() = default;
 
       void generateParents();
-      virtual void generateChildren();
+      virtual void geneChildren();
       void generateCombinedPopulation();
 
       std::vector<std::vector<int>> nonDominatedSorting(std::vector<Individual>& population);
-      void crowdingSorting(std::vector<std::vector<int>>& fronts, std::vector<Individual>& population);
+      void crowdingSorting(std::vector<std::vector<int>> fronts, std::vector<Individual>& population);
       void sortPopulation(std::vector<Individual>& population);
       std::pair<Individual, Individual> rankingSelection();
+      std::pair<Individual, Individual> randomSelection();
       virtual std::pair<Individual, Individual> crossover(std::pair<Individual, Individual> selected_parents) = 0;
       void mutation();
       bool dominating(Individual& A, Individual& B);

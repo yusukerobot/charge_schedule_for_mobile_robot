@@ -82,7 +82,7 @@ namespace nsgaii {
       }
    }
 
-   void ScheduleNsgaii::generateChildren() {
+   void ScheduleNsgaii::geneChildren() {
       size_t i = 0;
       while (i < children.size()) {
          std::pair<Individual, Individual> selected_parents = rankingSelection();
@@ -216,128 +216,169 @@ namespace nsgaii {
    }
 
    std::vector<std::vector<int>> ScheduleNsgaii::nonDominatedSorting(std::vector<Individual>& population) {
-      std::vector<std::vector<int>> fronts;
-      std::vector<int> Np(population.size(), 0); // 各個体が他から支配されている数
-      std::vector<std::set<int>> Sp(population.size()); // 各個体が支配している個体のリスト
+      if (population.empty()) {
+         return {};
+      }
 
-      // 各個体間の支配関係を判定
-      for (size_t i = 0; i < population.size(); ++i) {
-         for (size_t j = 0; j < population.size(); ++j) {
-               if (i == j) continue;
+      size_t n = population.size();
+      std::vector<std::vector<int>> fronts;
+      std::vector<int> Np(n, 0); // 各個体が支配されている数
+      std::vector<std::vector<int>> Sp(n); // 各個体が支配している個体のリスト
+
+      // 支配関係の計算
+      for (size_t i = 0; i < n; ++i) {
+         for (size_t j = i + 1; j < n; ++j) {
                if (dominating(population[i], population[j])) {
-                  Sp[i].insert(j); // i が j を支配
+                  Sp[i].push_back(j);
+                  if (j >= n) { // 範囲チェック
+                     std::cerr << "Error: Invalid index j (" << j << ") for population size " << n << std::endl;
+                     throw std::out_of_range("Invalid index in Sp.");
+                  }
+                  ++Np[j];
                } else if (dominating(population[j], population[i])) {
-                  ++Np[i]; // j が i を支配
+                  Sp[j].push_back(i);
+                  if (i >= n) { // 範囲チェック
+                     std::cerr << "Error: Invalid index i (" << i << ") for population size " << n << std::endl;
+                     throw std::out_of_range("Invalid index in Sp.");
+                  }
+                  ++Np[i];
                }
          }
       }
 
-      // 最初のフロントを作成
+      // 最初のフロントの作成
       std::vector<int> first_front;
-      for (size_t i = 0; i < population.size(); ++i) {
+      for (size_t i = 0; i < n; ++i) {
          if (Np[i] == 0) {
                first_front.push_back(i);
-               population[i].fronts_count = 0; // フロント番号を設定
+               population[i].fronts_count = 0;
          }
       }
       fronts.push_back(first_front);
 
-      // 残りのフロントを計算
-      size_t current_front = 0;
-      int fronts_individual_count = first_front.size();
-      while (fronts_individual_count < population.size()) {
+      // 残りのフロントの計算
+      size_t processed_individuals = first_front.size();
+      while (processed_individuals < n) {
          std::vector<int> next_front;
-         for (int individual : fronts[current_front]) {
+         for (int individual : fronts.back()) {
                for (int dominated : Sp[individual]) {
-                  --Np[dominated]; // 支配されている数を減らす
+                  --Np[dominated];
                   if (Np[dominated] == 0) {
                      next_front.push_back(dominated);
-                      population[dominated].fronts_count = current_front + 1;
+                     population[dominated].fronts_count = fronts.size();
                   }
                }
          }
-         if (!next_front.empty()) {
-               fronts.push_back(next_front);
-               ++current_front;
-               fronts_individual_count += next_front.size();
+         if (next_front.empty()) {
+               break;
+         }
+         fronts.push_back(next_front);
+         processed_individuals += next_front.size();
+      }
+
+      // 範囲外チェック
+      for (const auto& front : fronts) {
+         for (int index : front) {
+               if (index < 0 || static_cast<size_t>(index) >= population.size()) {
+                  std::cerr << "Error: Invalid index in fronts: " << index << std::endl;
+                  throw std::out_of_range("Invalid index in fronts.");
+               }
          }
       }
+
       return fronts;
    }
 
-   void ScheduleNsgaii::crowdingSorting(std::vector<std::vector<int>>& fronts, std::vector<Individual>& population) {
-      for (auto& front : fronts) {
-         if (front.size() < 2) continue;
+   void ScheduleNsgaii::crowdingSorting(std::vector<std::vector<int>> fronts, std::vector<Individual>& population) {
+   //  std::cout << "Before sorting in crowdingSorting:\n";
+   //  for (size_t i = 0; i < fronts.size(); ++i) {
+   //      for (int index : fronts[i]) {
+   //          std::cout << index << " ";
+   //      }
+   //      std::cout << "\n";
+   //  }
+   //  std::cout << "\n";
 
-         std::vector<float> crowding_distance(front.size(), 0.0f);
+    for (auto& front : fronts) {
+        if (front.size() < 2) continue;
 
-         // for (int& index : front) {
-         //    std::cout << index << ", ";
-         // }
-         // std::cout << std::endl;
+        // インデックスが範囲内であることを確認
+        for (int index : front) {
+            if (index < 0 || index >= population.size()) {
+                std::cerr << "Error: Index " << index << " is out of range. Population size: " << population.size() << std::endl;
+                throw std::out_of_range("Index is out of range in population.");
+            }
+        }
 
-         for (size_t obj = 0; obj < 2; ++obj) {
-            std::sort(front.begin(), front.end(), [&](int a, int b) {
-               if (a < 0 || a >= population.size()) {
-                  std::cerr << "Error: a (" << a << ") is out of range. Population size: " << population.size() << std::endl;
-                  throw std::out_of_range("Index 'a' is out of range in population.");
-               }
-               if (b < 0 || b >= population.size()) {
-                  std::cerr << "Error: b (" << b << ") is out of range. Population size: " << population.size() << std::endl;
-                  throw std::out_of_range("Index 'b' is out of range in population.");
-               }
-               return (obj == 0) 
-                  ? population[a].f1 <= population[b].f1
-                  : population[a].f2 <= population[b].f2;
+        // クラウド距離を計算するために、各インデックスに対して値を保持
+        std::vector<std::pair<int, float>> indexed_front;
+        for (size_t i = 0; i < front.size(); ++i) {
+            indexed_front.push_back({front[i], 0.0f});
+        }
+
+        // 2つのオブジェクトに対して、クラウド距離を計算
+        for (size_t obj = 0; obj < 2; ++obj) {
+            // オブジェクトごとにソートするためにラムダ式を使って比較
+            std::sort(indexed_front.begin(), indexed_front.end(), [&](const std::pair<int, float>& a, const std::pair<int, float>& b) {
+                if (obj == 0) {
+                    return population[a.first].f1 < population[b.first].f1;
+                } else {
+                    return population[a.first].f2 < population[b.first].f2;
+                }
             });
 
-            crowding_distance[0] = std::numeric_limits<float>::infinity();
-            crowding_distance[front.size() - 1] = std::numeric_limits<float>::infinity();
+            // クラウド距離の計算
+            indexed_front.front().second = std::numeric_limits<float>::infinity();
+            indexed_front.back().second = std::numeric_limits<float>::infinity();
 
-            for (size_t i = 1; i < front.size() - 1; ++i) {
-               float diff = (obj == 0)
-                  ? population[front[i + 1]].f1 - population[front[i - 1]].f1
-                  : population[front[i + 1]].f2 - population[front[i - 1]].f2;
+            for (size_t i = 1; i < indexed_front.size() - 1; ++i) {
+                float diff = (obj == 0)
+                    ? population[indexed_front[i + 1].first].f1 - population[indexed_front[i - 1].first].f1
+                    : population[indexed_front[i + 1].first].f2 - population[indexed_front[i - 1].first].f2;
 
-               float range = (obj == 0)
-                  ? population[front.back()].f1 - population[front.front()].f1
-                  : population[front.back()].f2 - population[front.front()].f2;
+                float range = (obj == 0)
+                    ? population[indexed_front.back().first].f1 - population[indexed_front.front().first].f1
+                    : population[indexed_front.back().first].f2 - population[indexed_front.front().first].f2;
 
-               if (range > 0) {
-                  crowding_distance[i] += diff / range;
-               } else {
-                  crowding_distance[i] += 0.0;
-               }
+                if (range > 0) {
+                    indexed_front[i].second += diff / range;
+                }
             }
-         }
+        }
 
-         std::vector<std::pair<int, float>> indexed_front;
-         for (size_t i = 0; i < front.size(); ++i) {
-            indexed_front.emplace_back(front[i], crowding_distance[i]);
-         }
-
-         std::sort(indexed_front.begin(), indexed_front.end(), [](const auto& a, const auto& b) {
+        // クラウド距離でソート
+        std::sort(indexed_front.begin(), indexed_front.end(), [](const std::pair<int, float>& a, const std::pair<int, float>& b) {
             return a.second > b.second;
-         });
+        });
 
-         front.clear();
-         for (const auto& elem : indexed_front) {
+        // frontを更新
+        front.clear();
+        for (const auto& elem : indexed_front) {
             front.push_back(elem.first);
-         }
-      }
+        }
+    }
 
-      std::vector<Individual> sorted_population;
-      for (const auto& front : fronts) {
-         for (int individual : front) {
+    // ソートされたpopulationを作成
+    std::vector<Individual> sorted_population;
+    for (const auto& front : fronts) {
+        for (int individual : front) {
             sorted_population.push_back(population[individual]);
-         }
-      }
-      
-      population = std::move(sorted_population);
-   }
+        }
+    }
+    population = std::move(sorted_population);
+}
 
    void ScheduleNsgaii::sortPopulation(std::vector<Individual>& population) {
       std::vector<std::vector<int>> fronts = nonDominatedSorting(population);
+      // std::cout << "渡し" << std::endl;
+      // for (auto& front : fronts) {
+      //    for (auto& index : front) {
+      //       std::cout << index << " ";
+      //    }
+      //    std::cout << std::endl;
+      // }
+      // std::cout << std::endl;
+
       crowdingSorting(fronts, population);
       std::stable_sort(population.begin(), population.end(),
                   [](const Individual& a, const Individual& b) {
@@ -355,14 +396,49 @@ namespace nsgaii {
       std::mt19937 gen(rd()); // メルセンヌ・ツイスタエンジン
       std::uniform_int_distribution<> select_dist(0, parents.size() - 1);
 
-      for (int i = 0; i < 2; ++i) {
-         int first = select_dist(gen);
-         int second = select_dist(gen);         
-         Individual& selected = (first <= second) ? parents[first] : parents[second];
-         (i == 0 ? selected_parents.first : selected_parents.second) = selected;
-      }
+      // 親が異なる評価値を持つまで繰り返す
+      do {
+         for (int i = 0; i < 2; ++i) {
+               int first = select_dist(gen);
+               int second = select_dist(gen);
+               Individual& selected = (first <= second) ? parents[first] : parents[second];
+               (i == 0 ? selected_parents.first : selected_parents.second) = selected;
+         }
+      } while (selected_parents.first.f1 == selected_parents.second.f1 &&
+               selected_parents.first.f2 == selected_parents.second.f2);
 
       // charging_numberを比較して必要に応じて入れ替え
+      if (selected_parents.first.charging_number > selected_parents.second.charging_number) {
+         std::swap(selected_parents.first, selected_parents.second);
+      }
+
+      return selected_parents;
+   }
+
+   std::pair<Individual, Individual> ScheduleNsgaii::randomSelection() {
+      std::pair<Individual, Individual> selected_parents = std::make_pair(Individual(max_charge_number), Individual(max_charge_number));
+
+      std::random_device rd; // ノイズを使用したシード
+      std::mt19937 gen(rd()); // メルセンヌ・ツイスタエンジン
+      std::uniform_int_distribution<> select_dist(0, parents.size() - 1);
+      // 最初の親を選択
+      int first_index = select_dist(gen);
+      selected_parents.first = parents[first_index];
+
+      int second_index;
+
+      // 評価値が異なる親を選択するまで繰り返す
+      do {
+         second_index = select_dist(gen);
+      } while (
+         second_index == first_index || // 同じ親を選ばない
+         (parents[first_index].f1 == parents[second_index].f1 && 
+            parents[first_index].f2 == parents[second_index].f2) // 評価値が異なるかチェック
+      );
+
+      selected_parents.second = parents[second_index];
+
+       // charging_numberを比較して必要に応じて入れ替え
       if (selected_parents.first.charging_number > selected_parents.second.charging_number) {
          std::swap(selected_parents.first, selected_parents.second);
       }

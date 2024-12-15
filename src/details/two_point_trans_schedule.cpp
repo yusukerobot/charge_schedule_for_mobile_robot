@@ -4,6 +4,8 @@
 #include <cmath>
 #include <iostream>
 #include <algorithm>
+#include <set>
+#include <utility>  
 #include "two_point_trans_schedule.hpp"
 
 namespace charge_schedule
@@ -40,7 +42,7 @@ namespace charge_schedule
         
         nsgaii::Individual individual(charging_number_dist(gen));
 
-        std::uniform_int_distribution<> first_soc(70, 100);
+        std::uniform_int_distribution<> first_soc(80, 100);
         individual.first_soc = first_soc(gen);
 
         int last_return_position = 0;
@@ -57,7 +59,13 @@ namespace charge_schedule
             int cycle = cycle_dist(gen);
 
             individual.time_chromosome[i] = calcTimeChromosome(cycle, last_return_position, charging_timing_position, elapsed_time);
-            individual.soc_charging_start[i] = (i == 0) ? calcSOCchargingStart(individual.first_soc, cycle, last_return_position, charging_timing_position) : calcSOCchargingStart(individual.soc_chromosome[i - 1] - E_cs[last_return_position], cycle, last_return_position, charging_timing_position);
+            if (i == 0) {
+                individual.soc_charging_start[i] = calcSOCchargingStart(individual.first_soc, cycle, last_return_position, charging_timing_position);
+            } else if (last_return_position == 1) {
+                individual.soc_charging_start[i] = calcSOCchargingStart(individual.soc_chromosome[i - 1] - E_standby[1] - E_cs[1], cycle, last_return_position, charging_timing_position);
+            } else {
+                individual.soc_charging_start[i] = calcSOCchargingStart(individual.soc_chromosome[i - 1] - E_cs[0], cycle, last_return_position, charging_timing_position);
+            }
 
             float target_soc_min = individual.soc_charging_start[i] + charging_minimum;
             if (target_soc_min >= 100) { target_soc_min = 100; }
@@ -67,11 +75,11 @@ namespace charge_schedule
             individual.T_span[i][0] = individual.time_chromosome[i] - elapsed_time;
             individual.T_span[i][1] = T_cs[charging_timing_position];
             individual.T_span[i][2] = calcChargingTime(individual.soc_charging_start[i], individual.soc_chromosome[i]);
-            individual.T_span[i][3] = (return_position == 0) ? T_cs[return_position] : T_cs[return_position] + T_standby[1];
+            individual.T_span[i][3] = (return_position == 0) ? T_cs[0] : T_cs[1] + T_standby[1];
 
             W_total += calcTotalWork(cycle, last_return_position, charging_timing_position);
             individual.W[i] = W_total;
-            individual.E_return[i] = (return_position == 0) ? E_cs[return_position] : E_cs[return_position] + E_standby[1];
+            individual.E_return[i] = (return_position == 0) ? E_cs[0] : E_cs[1] + E_standby[1];
             individual.charging_position[i] = charging_timing_position;
             individual.return_position[i] = return_position;
             individual.cycle_count[i] = cycle;
@@ -91,130 +99,48 @@ namespace charge_schedule
         }
     }
 
-    void TwoTransProblem::generateChildren() {
+    void TwoTransProblem::generateChildren(bool random, float eta) {
         size_t i = 0;
-      while (i < children.size()) {
-         std::pair<nsgaii::Individual, nsgaii::Individual> selected_parents = rankingSelection();
-         std::pair<nsgaii::Individual, nsgaii::Individual> child = second_crossover(selected_parents);
-         // mutation();
-         children[i] = child.first;
-         children[i + 1] = child.second;
-         i += 2;
+        std::set<std::pair<float, float>> existing_objectives; // 評価値を記録するセット
 
-         std::cout << "--- selected parents ---" << std::endl;
+        // 現在の親集団の評価値をセットに追加
+        for (const auto& parent : parents) {
+            existing_objectives.insert({parent.f1, parent.f2});
+        }
 
-         std::cout << "first " << std::endl;
-         std::cout << "  time: ";
-         for (float& time : selected_parents.first.time_chromosome) {
-            std::cout << time << " ";
-         }
-         std::cout << std::endl;
-         std::cout << "  soc: ";
-         for (auto& soc : selected_parents.first.soc_chromosome) {
-            std::cout << soc << " ";
-         }
-         std::cout << std::endl;
-         std::cout << "  W: ";
-         for (auto& W : selected_parents.first.W) {
-            std::cout << W << " ";
-         }
-         std::cout << std::endl;
-         std::cout << "  T_span: ";
-         for (auto& span : selected_parents.first.T_span) {
-            float elapsed_time = 0;
-            for (auto& time : span) {
-               elapsed_time += time;
-            }
-            std::cout << elapsed_time << " ";
-         }
-         std::cout << std::endl;
-         std::cout << "  f1: " << selected_parents.first.f1 << ", f2: "<< selected_parents.first.f2 << std::endl;
+        std::pair<nsgaii::Individual, nsgaii::Individual> selected_parents = randomSelection();
+        std::pair<nsgaii::Individual, nsgaii::Individual> child(selected_parents.first.charging_number, selected_parents.second.charging_number);
 
-         std::cout << "second "<< std::endl;
-         std::cout << "  time: ";
-         for (float& time : selected_parents.second.time_chromosome) {
-            std::cout << time << " ";
-         }
-         std::cout << std::endl;
-         std::cout << "  soc: ";
-         for (auto& soc : selected_parents.second.soc_chromosome) {
-            std::cout << soc << " ";
-         }
-         std::cout << std::endl;
-         std::cout << "  W: ";
-         for (auto& W : selected_parents.second.W) {
-            std::cout << W << " ";
-         }
-         std::cout << std::endl;
-         std::cout << "  T_span: ";
-         for (auto& span : selected_parents.second.T_span) {
-            float elapsed_time = 0;
-            for (auto& time : span) {
-               elapsed_time += time;
-            }
-            std::cout << elapsed_time << " ";
-         }
-         std::cout << std::endl;
-         std::cout << "  f1: " << selected_parents.second.f1 << ", f2: "<< selected_parents.second.f2 << std::endl;
-         std::cout << "------" << std::endl;
+        while (i < children.size()) {
 
-         std::cout << "--- child ---" << std::endl;
-         std::cout << "first: " << std::endl;
-         std::cout << "  time: ";
-         for (float& time : child.first.time_chromosome) {
-            std::cout << time << " ";
-         }
-         std::cout << std::endl;
-         std::cout << "  soc: ";
-         for (auto& soc : child.first.soc_chromosome) {
-            std::cout << soc << " ";
-         }
-         std::cout << std::endl;
-         std::cout << "  W: ";
-         for (auto& W : child.first.W) {
-            std::cout << W << " ";
-         }
-         std::cout << std::endl;
-         std::cout << "  T_span: ";
-         for (auto& span : child.first.T_span) {
-            float elapsed_time = 0;
-            for (auto& time : span) {
-               elapsed_time += time;
-            }
-            std::cout << elapsed_time << " ";
-         }
-         std::cout << std::endl;
+            int count = 0;
+            do {
+                // 子個体を生成
+                if (random) {
+                    selected_parents = randomSelection();
+                } else {
+                    selected_parents = rankingSelection();
+                }
+                child = second_crossover(selected_parents, eta);
+                calucObjectiveFunction(child.first);
+                calucObjectiveFunction(child.second);
+                ++count;
+                // std::cout << count << std::endl;
+                if (count > 1000) break;
+            } while (
+                existing_objectives.count({child.first.f1, child.first.f2}) > 0 ||
+                existing_objectives.count({child.second.f1, child.second.f2}) > 0
+            );
 
-         std::cout << "second: " << std::endl;
-         std::cout << "  time: ";
-         for (float& time : child.second.time_chromosome) {
-            std::cout << time << " ";
-         }
-         std::cout << std::endl;
-         std::cout << "  soc: ";
-         for (auto& soc : child.second.soc_chromosome) {
-            std::cout << soc << " ";
-         }
-         std::cout << std::endl;
-         std::cout << "  W: ";
-         for (auto& W : child.second.W) {
-            std::cout << W << " ";
-         }
-         std::cout << std::endl;
-         std::cout << "  T_span: ";
-         for (auto& span : child.second.T_span) {
-            float elapsed_time = 0;
-            for (auto& time : span) {
-               elapsed_time += time;
-            }
-            std::cout << elapsed_time << " ";
-         }
-         std::cout << std::endl;
-         std::cout << "------" << std::endl;
+            // 子個体の評価値をセットに追加
+            existing_objectives.insert({child.first.f1, child.first.f2});
+            existing_objectives.insert({child.second.f1, child.second.f2});
 
-         // std::cout << child.first.penalty << std::endl;
-         // std::cout << child.second.penalty << std::endl;
-      }
+            // 子個体を追加
+            children[i] = child.first;
+            children[i + 1] = child.second;
+            i += 2;
+        }
     }
 
     void TwoTransProblem::evaluatePopulation(std::vector<nsgaii::Individual>& population)
@@ -354,7 +280,7 @@ namespace charge_schedule
         return child;
     }
 
-    std::pair<nsgaii::Individual, nsgaii::Individual> TwoTransProblem::second_crossover(std::pair<nsgaii::Individual, nsgaii::Individual> selected_parents) {
+    std::pair<nsgaii::Individual, nsgaii::Individual> TwoTransProblem::second_crossover(std::pair<nsgaii::Individual, nsgaii::Individual> selected_parents, float eta) {
         std::pair<nsgaii::Individual, nsgaii::Individual> child = std::make_pair(nsgaii::Individual(selected_parents.first.charging_number), nsgaii::Individual(selected_parents.second.charging_number));
 
         child.first.first_soc = selected_parents.first.first_soc;
@@ -372,44 +298,75 @@ namespace charge_schedule
         int c2_W_total = 0;
 
         while (i < child.first.charging_number) {
-            float c1_min_time = (c1_last_return_position == 0) ? T_standby[0] : 0;
-            float c2_min_time = (c2_last_return_position == 0) ? T_standby[0] : 0;
-            float c1_max_time = std::min(calcCycleMax(child.first, 0, c1_last_return_position, i) * T_cycle + c1_elapsed_time, calcCycleMax(child.first, 1, c1_last_return_position, i) * T_cycle + c1_elapsed_time);
-            float c2_max_time = std::min(calcCycleMax(child.second, 0, c2_last_return_position, i) * T_cycle + c2_elapsed_time, calcCycleMax(child.second, 1, c2_last_return_position, i) * T_cycle + c2_elapsed_time);
+            float c1_min_time = (c1_last_return_position == 0) ? T_standby[0] + c1_elapsed_time : c1_elapsed_time;
+            float c2_min_time = (c2_last_return_position == 0) ? T_standby[0] + c2_elapsed_time : c2_elapsed_time;
+            int c1_cycle_max = 0;
+            int c2_cycle_max = 0;
+            int c1_cycle_max_position = 0;
+            int c2_cycle_max_position = 0;
+            if (calcCycleMax(child.first, 0, c1_last_return_position, i) <= calcCycleMax(child.first, 1, c1_last_return_position, i)) {
+                c1_cycle_max = calcCycleMax(child.first, 0, c1_last_return_position, i);
+                c1_cycle_max_position = 0;
+            } else {
+                c1_cycle_max = calcCycleMax(child.first, 1, c1_last_return_position, i);
+                c1_cycle_max_position = 1;
+            }
+            if (calcCycleMax(child.second, 0, c2_last_return_position, i) <= calcCycleMax(child.second, 1, c2_last_return_position, i)) {
+                c2_cycle_max = calcCycleMax(child.second, 0, c2_last_return_position, i);
+                c2_cycle_max_position = 0;
+            } else {
+                c2_cycle_max = calcCycleMax(child.second, 1, c2_last_return_position, i);
+                c2_cycle_max_position = 1;
+            }
+
+            float c1_max_time = c1_cycle_max * T_cycle + c1_elapsed_time;
+            float c2_max_time = c2_cycle_max * T_cycle + c2_elapsed_time;
             std::pair<float, float> min_time = std::make_pair(c1_min_time, c2_min_time);
             std::pair<float, float> max_time = std::make_pair(c1_max_time, c2_max_time);
-            std::pair<float, float> target_time = float_sbx(selected_parents.first.time_chromosome[i], selected_parents.second.time_chromosome[i], min_time, max_time, 100);
+
+            std::pair<float, float> target_time = float_sbx(selected_parents.first.time_chromosome[i], selected_parents.second.time_chromosome[i], min_time, max_time, eta);
+
             std::pair<int, int>c1_cycle_posit = timeToCycleAndPosition(target_time.first, c1_last_return_position, c1_elapsed_time);
             std::pair<int, int>c2_cycle_posit = timeToCycleAndPosition(target_time.second, c2_last_return_position, c2_elapsed_time);
+            if (c1_cycle_posit.first > c1_cycle_max) {
+                c1_cycle_posit.first = c1_cycle_max;
+                c1_cycle_posit.second = c1_cycle_max_position;
+                // std::cout << "c1_cycle_max: " << c1_cycle_max << std::endl;
+            }
+            if (c2_cycle_posit.first > c2_cycle_max) {
+                c2_cycle_posit.first = c2_cycle_max;
+                c2_cycle_posit.second = c2_cycle_max_position;
+                // std::cout << "c2_cycle_max: " << c2_cycle_max << std::endl;
+            }
             std::pair<int, int> cycle = std::make_pair(c1_cycle_posit.first, c2_cycle_posit.first);
             int c1_charging_timing_position = c1_cycle_posit.second;
             int c1_return_position = (c1_charging_timing_position == 0) ? 1 : 0;
             int c2_charging_timing_position = c2_cycle_posit.second;
             int c2_return_position = (c2_charging_timing_position == 0) ? 1 : 0;
-            // std::cout << "p1 cycle: " << selected_parents.first.cycle_count[i] << std::endl;
-            // std::cout << "p2 cycle: " << selected_parents.second.cycle_count[i] << std::endl;
-            // std::cout << "c1 cycle: " << c1_cycle_posit.first << std::endl;
-            // std::cout << "c2 cycle: " << c2_cycle_posit.first << std::endl;
-            // std::cout << "p1 position: " << selected_parents.first.charging_position[i] << std::endl;
-            // std::cout << "p2 position: " << selected_parents.second.charging_position[i] << std::endl;
-            // std::cout << "c1 position: " << c1_charging_timing_position << std::endl;
-            // std::cout << "c2 position: " << c2_charging_timing_position << std::endl;
             
             child.first.time_chromosome[i] = calcTimeChromosome(cycle.first, c1_last_return_position, c1_charging_timing_position, c1_elapsed_time);
             child.second.time_chromosome[i] = calcTimeChromosome(cycle.second, c2_last_return_position, c2_charging_timing_position, c2_elapsed_time);
-            
+
             child.first.soc_charging_start[i] = (i == 0) ? calcSOCchargingStart(child.first.first_soc, cycle.first, c1_last_return_position, c1_charging_timing_position) : calcSOCchargingStart(child.first.soc_chromosome[i - 1] - E_cs[c1_last_return_position], cycle.first, c1_last_return_position, c1_charging_timing_position);
             child.second.soc_charging_start[i] = (i == 0) ? calcSOCchargingStart(child.second.first_soc, cycle.second, c2_last_return_position, c2_charging_timing_position) : calcSOCchargingStart(child.second.soc_chromosome[i - 1] - E_cs[c2_last_return_position], cycle.second, c2_last_return_position, c2_charging_timing_position);
+            if (i != 0 && c1_last_return_position == 1) {
+                child.first.soc_charging_start[i] = calcSOCchargingStart(child.first.soc_chromosome[i - 1] - E_standby[1] - E_cs[1], cycle.first, c1_last_return_position, c1_charging_timing_position);
+            } 
+            if (i != 0 && c2_last_return_position == 1) {
+                child.second.soc_charging_start[i] = calcSOCchargingStart(child.second.soc_chromosome[i - 1] - E_standby[1] - E_cs[1], cycle.second, c2_last_return_position, c2_charging_timing_position);
+            }
+
+            // std::cout << "cycle1: " << cycle.first << std::endl;
+            // std::cout << "cycle2: " << cycle.second << std::endl;
 
             int c1_target_soc_min = std::floor(child.first.soc_charging_start[i] + charging_minimum);
             int c2_target_soc_min = std::floor(child.second.soc_charging_start[i] + charging_minimum);
-            
             if (c1_target_soc_min >= 100) { c1_target_soc_min = 100; }
             if (c2_target_soc_min >= 100) { c2_target_soc_min = 100; }
 
             std::pair<int, int> soc_target_min = std::make_pair(c1_target_soc_min, c2_target_soc_min);
             std::pair<int, int> soc_target_max = std::make_pair(100, 100);
-            std::pair<int, int> soc_target = int_sbx(selected_parents.first.soc_chromosome[i], selected_parents.second.soc_chromosome[i], soc_target_min, soc_target_max, 100);
+            std::pair<int, int> soc_target = int_sbx(selected_parents.first.soc_chromosome[i], selected_parents.second.soc_chromosome[i], soc_target_min, soc_target_max, eta);
             child.first.soc_chromosome[i] = soc_target.first;
             child.second.soc_chromosome[i] = soc_target.second;
 
@@ -423,7 +380,7 @@ namespace charge_schedule
             child.first.E_return[i] = (c1_return_position == 0) ? E_cs[c1_return_position] : E_cs[c1_return_position] + E_standby[1];
             child.first.charging_position[i] = c1_charging_timing_position;
             child.first.return_position[i] = c1_return_position;
-            child.second.cycle_count[i] = cycle.first;
+            child.first.cycle_count[i] = cycle.first;
 
             child.second.T_span[i][0] = child.second.time_chromosome[i] - c2_elapsed_time;
             child.second.T_span[i][1] = T_cs[c2_charging_timing_position];
@@ -444,21 +401,46 @@ namespace charge_schedule
             ++i;
         }
         while (i < child.second.charging_number) {
-            float c2_max_time = std::min(calcCycleMax(child.second, 0, c2_last_return_position, i) * T_cycle, calcCycleMax(child.second, 1, c2_last_return_position, i) * T_cycle);
+            float c2_min_time = (c2_last_return_position == 0) ? T_standby[0] + c2_elapsed_time : c2_elapsed_time;
+            int c2_cycle_max = 0;
+            int c2_cycle_max_position = 0;
+            if (calcCycleMax(child.second, 0, c2_last_return_position, i) <= calcCycleMax(child.second, 1, c2_last_return_position, i)) {
+                c2_cycle_max = calcCycleMax(child.second, 0, c2_last_return_position, i);
+                c2_cycle_max_position = 0;
+            } else {
+                c2_cycle_max = calcCycleMax(child.second, 1, c2_last_return_position, i);
+                c2_cycle_max_position = 1;
+            }
+
+            float c2_max_time = c2_cycle_max * T_cycle + c2_elapsed_time;
             float target_time = selected_parents.second.time_chromosome[i];
-            if (target_time > c2_max_time) target_time = c2_max_time;
+
+            if (target_time < c2_min_time){
+                target_time = c2_min_time;
+            }
+
             std::pair<int, int>c2_cycle_posit = timeToCycleAndPosition(target_time, c2_last_return_position, c2_elapsed_time);
+
             int cycle = c2_cycle_posit.first;
             int charging_timing_position = c2_cycle_posit.second;
-            int return_position = (charging_timing_position == 0)? 0 : 1;
+
+            if (cycle > c2_cycle_max) {
+                cycle = c2_cycle_max;
+                charging_timing_position = c2_cycle_max_position;
+            }
+
+            int return_position = (charging_timing_position == 0)? 1 : 0;
 
             child.second.time_chromosome[i] = calcTimeChromosome(cycle, c2_last_return_position, charging_timing_position, c2_elapsed_time);
-            child.second.soc_charging_start[i] = child.second.soc_chromosome[i - 1] - (E_cs[c2_last_return_position] + ((child.second.time_chromosome[i] - c2_elapsed_time) / T_cycle) * E_cycle + E_cs[charging_timing_position]);
+            if ( c2_last_return_position == 1 ) {
+                child.second.soc_charging_start[i] = calcSOCchargingStart(child.second.soc_chromosome[i - 1] - E_standby[1] - E_cs[1], cycle, c2_last_return_position, charging_timing_position);
+            } else {
+                child.second.soc_charging_start[i] = calcSOCchargingStart(child.second.soc_chromosome[i - 1] - E_cs[0], cycle, c2_last_return_position, charging_timing_position);
+            }
 
-            float c2_target_soc_min = child.second.soc_charging_start[i] + charging_minimum;
+            float c2_target_soc_min = std::floor(child.second.soc_charging_start[i] + charging_minimum);
             if (c2_target_soc_min >= 100) { c2_target_soc_min = 100; }
-            std::uniform_int_distribution<> c2_target_SOC_dist(c2_target_soc_min, 100);
-            child.second.soc_chromosome[i] = c2_target_SOC_dist(gen);
+            child.second.soc_chromosome[i] = (selected_parents.second.soc_chromosome[i] > c2_target_soc_min) ? selected_parents.second.soc_chromosome[i] : c2_target_soc_min;
 
             child.second.T_span[i][0] = child.second.time_chromosome[i] - c2_elapsed_time;
             child.second.T_span[i][1] = T_cs[charging_timing_position];
@@ -485,28 +467,36 @@ namespace charge_schedule
     std::pair<int, int> TwoTransProblem::timeToCycleAndPosition(float& target_time, int& last_return_position, float& elapsed_time) {
         float time = target_time - elapsed_time;
         int cycle = std::floor(time / T_cycle) + 1;
+        float cycle_dec = time / T_cycle - std::floor(time / T_cycle);
         int position = 0;
 
         if (last_return_position == 0) {
-            if (std::fmod(time, T_cycle) <= (T_cycle / 4) + (T_standby[0] / T_cycle) || (3*T_cycle / 4) + (T_standby[1] / T_cycle) < std::fmod(time, T_cycle)) {
-                position = 0;
+            float base_1 = (T_standby[0] + T_move[0] + T_standby[1]) / (2*T_cycle); // 0.41
+            float base_2 = T_move[1] / (2*T_cycle) + 2*base_1; // 0.916
+            if (cycle_dec <= base_1 || base_2 < cycle_dec) {
+                position = 0; // 0.333
             } else {
-                position = 1;
+                position = 1; // 0.833
             }
         } else {
-            if (std::fmod(time, T_cycle) <= (T_cycle / 4) + (T_standby[1] / T_cycle)) {
-                position = 1;
+            float base_1 = (T_move[1] + T_standby[0]) / (2*T_cycle); // 0.25
+            float base_2 = (T_move[0] + T_standby[1]) / (2*T_cycle) + 2*base_1; // 0.75
+            if (cycle_dec <= base_1) {
+                position = 1; // 0
                 --cycle;
-            } else if ((3*T_cycle / 4) + (T_standby[0] / T_cycle) < std::fmod(time, T_cycle)) {
-                position = 1;
+            } else if (base_2 < cycle_dec) {
+                position = 1; // 0
             }
             else {
-                position = 0;
+                position = 0; // 0.5
             }
         }
-
-        if (position == last_return_position == 1 && time < T_cycle) {
-            cycle = 0;
+        
+        if (cycle < 0) { 
+            std::cout << "cycleが0より小さいです" << std::endl;
+            std::cout << time << std::endl;
+            std::cout << target_time << std::endl;
+            std::cout << elapsed_time << std::endl;
         }
 
         return std::make_pair(cycle, position);
@@ -522,12 +512,12 @@ namespace charge_schedule
                     ? pow(2 * u, 1.0 / (eta + 1)) 
                     : pow(1.0 / (2 * (1 - u)), 1.0 / (eta + 1));
 
-        int c1 = std::floor(0.5 * ((1 + beta) * p1 + (1 - beta) * p2));
-        int c2 = std::floor(0.5 * ((1 - beta) * p1 + (1 + beta) * p2));
+        int c1 = std::round(0.5 * ((1 + beta) * p1 + (1 - beta) * p2));
+        int c2 = std::round(0.5 * ((1 - beta) * p1 + (1 + beta) * p2));
 
         // 範囲を制限
-        c1 = std::floor(std::max(gene_min.first, std::min(c1, gene_max.first)));
-        c2 = std::floor(std::max(gene_min.second, std::min(c2, gene_max.second)));
+        c1 = std::max(gene_min.first, std::min(c1, gene_max.first));
+        c2 = std::max(gene_min.second, std::min(c2, gene_max.second));
 
         return std::make_pair(c1, c2);
     }
@@ -626,11 +616,11 @@ namespace charge_schedule
         if (last_return_position == 1) {
             soc_minimum_cycle = (i == 0) 
                 ? std::floor((individual.first_soc - soc_minimum - E_cs[charging_position]) / E_cycle) 
-                : std::floor((individual.soc_chromosome[i - 1] - soc_minimum - (E_cs[last_return_position] + E_standby[1] + E_cs[soc_minimum_cycle])) / E_cycle);
+                : std::floor((individual.soc_chromosome[i - 1] - soc_minimum - (E_cs[1] + E_standby[1] + E_cs[charging_position])) / E_cycle);
         } else {
             soc_minimum_cycle  = (i == 0) 
                 ? std::floor((individual.first_soc - soc_minimum - E_cs[charging_position]) / E_cycle) 
-                : std::floor((individual.soc_chromosome[i - 1] - soc_minimum - (E_cs[last_return_position] + E_cs[charging_position])) / E_cycle);
+                : std::floor((individual.soc_chromosome[i - 1] - soc_minimum - (E_cs[0] + E_cs[charging_position])) / E_cycle);
         }
         return soc_minimum_cycle;
     }
@@ -662,32 +652,39 @@ namespace charge_schedule
                 makespan += time;
             }
         }
+        if (makespan < 0) { std::cout << "make: エラー" << std::endl;}
         return makespan;
     }
 
     float TwoTransProblem::soc_HiLowTime(std::vector<float> T_SOC_HiLow)
     {
         float hi_low_time = 0;
-        std::cout << "T_SOC_HiLow: ";
         for (auto& time : T_SOC_HiLow) {
             hi_low_time += time;
-            std::cout << time << " ";
         }
-        std::cout << std::endl;
+        if (hi_low_time < 0) { std::cout << "soc: エラー" << std::endl;}
         return hi_low_time;
     }
 
     void TwoTransProblem::calcSOCHiLow(nsgaii::Individual& individual) {
         std::array<float, 3> T_socHi = {};
         std::array<float, 3> T_socLow = {};
-        float last_soc_t = individual.first_soc;
-        for (int i = 0; i < individual.charging_number + 1; ++i) {
+        float last_final_soc = individual.first_soc;
+        for (int i = 0; i < individual.charging_number; ++i) {
+            float first_soc = last_final_soc;
+            float final_soc = (individual.return_position[i] == 0) ? individual.soc_chromosome[i] - individual.E_return[0] : individual.soc_chromosome[i] - individual.E_return[1] - E_standby[1];
+
             if (SOC_Hi <= individual.soc_charging_start[i]) {
                 T_socHi[0] = individual.T_span[i][0] + individual.T_span[i][1];
-            } else if (individual.soc_charging_start[i] <= SOC_Hi && SOC_Hi <= last_soc_t) {
-                T_socHi[0] = ((last_soc_t - SOC_Hi) / (last_soc_t - individual.soc_charging_start[i])) * (individual.T_span[i][0] + individual.T_span[i][1]);
+            } else if (individual.soc_charging_start[i] <= SOC_Hi && SOC_Hi <= first_soc) {
+                T_socHi[0] = ((first_soc - SOC_Hi) / (first_soc - individual.soc_charging_start[i])) * (individual.T_span[i][0] + individual.T_span[i][1]);
             } else {
                 T_socHi[0] = 0;
+            }
+            if (T_socHi[0] < 0) { 
+                std::cout << "first_soc: " << first_soc << std::endl;
+                std::cout << "individual.soc_charging_start[i]: " << individual.soc_charging_start[i] << std::endl;
+                std::cout << "T_socHi[0]: エラー" << std::endl;
             }
 
             if (SOC_Hi <= individual.soc_charging_start[i]) {
@@ -697,22 +694,25 @@ namespace charge_schedule
             } else {
                 T_socHi[1] = 0;
             }
+            if (T_socHi[1] < 0) { std::cout << "T_socHi[1]: エラー" << std::endl;}
 
-            if (SOC_Hi <= individual.soc_chromosome[i] - individual.E_return[i]) {
+            if (SOC_Hi <= final_soc) {
                 T_socHi[2] = individual.T_span[i][3];
-            } else if (individual.soc_chromosome[i] - individual.E_return[i] <= SOC_Hi && SOC_Hi <= individual.soc_chromosome[i]) {
-                T_socHi[2] = ((individual.soc_chromosome[i] - SOC_Hi) / (individual.soc_chromosome[i] - (individual.soc_chromosome[i] - individual.E_return[i]))) * individual.T_span[i][3];
+            } else if (final_soc <= SOC_Hi && SOC_Hi <= individual.soc_chromosome[i]) {
+                T_socHi[2] = ((individual.soc_chromosome[i] - SOC_Hi) / (individual.soc_chromosome[i] - final_soc)) * individual.T_span[i][3];
             } else {
                 T_socHi[2] = 0;
             }
+            if (T_socHi[2] < 0) { std::cout << "T_socHi[2]: エラー" << std::endl;}
 
-            if (last_soc_t <= SOC_Low) {
+            if (first_soc <= SOC_Low) {
                 T_socLow[0] = individual.T_span[i][0] + individual.T_span[i][1];
-            } else if (individual.soc_charging_start[i] <= SOC_Low && SOC_Low <= last_soc_t) {
-                T_socLow[0] = ((SOC_Low - individual.soc_charging_start[i]) / (last_soc_t - individual.soc_charging_start[i])) * (individual.T_span[i][0] + individual.T_span[i][1]);
+            } else if (individual.soc_charging_start[i] <= SOC_Low && SOC_Low <= first_soc) {
+                T_socLow[0] = ((SOC_Low - individual.soc_charging_start[i]) / (first_soc - individual.soc_charging_start[i])) * (individual.T_span[i][0] + individual.T_span[i][1]);
             } else {
                 T_socLow[0] = 0;
             }
+            if (T_socLow[0] < 0) { std::cout << "T_socLow[0]: エラー" << std::endl;}
 
             if (individual.soc_chromosome[i] <= SOC_Low) {
                 T_socLow[1] = individual.T_span[i][2];
@@ -721,28 +721,56 @@ namespace charge_schedule
             } else {
                 T_socLow[1] = 0;
             }
+            if (T_socLow[1] < 0) { std::cout << "T_socLow[0]: エラー" << std::endl;}
 
             if (individual.soc_chromosome[i] <= SOC_Low) {
                 T_socLow[2] = individual.T_span[i][3];
-            } else if (individual.soc_chromosome[i] - individual.E_return[i] <= SOC_Low && SOC_Low <= individual.soc_chromosome[i]) {
-                T_socLow[2] = ((SOC_Low - (individual.soc_chromosome[i] - individual.E_return[i])) / (individual.soc_chromosome[i] - (individual.soc_chromosome[i] - individual.E_return[i]))) * individual.T_span[i][3];
+            } else if (final_soc <= SOC_Low && SOC_Low <= individual.soc_chromosome[i]) {
+                T_socLow[2] = ((SOC_Low - final_soc) / (individual.soc_chromosome[i] - final_soc)) * individual.T_span[i][3];
             } else {
                 T_socLow[2] = 0;
             }
+            if (T_socLow[2] < 0) { std::cout << "T_socLow[0]: エラー" << std::endl;}
 
             for (int j = 0; j < 3; ++j) {
                 individual.T_SOC_HiLow[i] += T_socHi[j] + T_socLow[j];
             }
 
-            last_soc_t = individual.soc_chromosome[i];
+            last_final_soc = final_soc;
         }
+
+        float first_soc = last_final_soc;
+        float final_soc = (individual.return_position[individual.charging_number - 1] == 0) ? individual.soc_chromosome[individual.charging_number - 1] - individual.E_return[0] : individual.soc_chromosome[individual.charging_number - 1] - individual.E_return[1] - E_standby[1];
+
+        if (SOC_Hi <= final_soc) {
+            T_socHi[0] = individual.T_span[individual.charging_number][0];
+        } else if (final_soc <= SOC_Hi && SOC_Hi <= first_soc) {
+            T_socHi[0] = ((first_soc - SOC_Hi) / (first_soc - final_soc)) * individual.T_span[individual.charging_number][0];
+        } else {
+            T_socHi[0] = 0;
+        }
+        if (first_soc <= SOC_Low) {
+            T_socLow[0] = individual.T_span[individual.charging_number][0];
+        } else if (final_soc <= SOC_Low && SOC_Low <= first_soc) {
+            T_socLow[0] = ((SOC_Low - final_soc) / (first_soc - final_soc)) * individual.T_span[individual.charging_number][0];
+        } else {
+            T_socLow[0] = 0;
+        }
+        if (T_socHi[0] < 0) { 
+            std::cout << "first_soc: " << first_soc << std::endl;
+            std::cout << "individual.soc_charging_start[i]: " << final_soc << std::endl;
+            std::cout << "T_socHi[0]: エラー" << std::endl;
+        }
+        if (T_socLow[0] < 0) { std::cout << "T_socLow[0]: エラー" << std::endl;}
+
+        individual.T_SOC_HiLow[individual.charging_number] += T_socHi[0] + T_socLow[0];
     }
 
     float TwoTransProblem::calcChargingTime(float& soc_charging_start, int& soc_target)
     {
         float charging_time = 0;
 
-        if (SOC_cccv < soc_charging_start){
+        if (SOC_cccv <= soc_charging_start){
             charging_time = (soc_target - soc_charging_start) / r_cv;
         } else if (soc_charging_start < SOC_cccv && SOC_cccv < soc_target){
             charging_time = (SOC_cccv - soc_charging_start) / r_cc + (soc_target - SOC_cccv) / r_cv;

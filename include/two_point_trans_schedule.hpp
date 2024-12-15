@@ -16,10 +16,10 @@ namespace charge_schedule
         nsgaii::Individual generateIndividual();
 
         void generateFirstParents() override;
-        void generateChildren() override;
+        void generateChildren(bool random, float eta);
         void evaluatePopulation(std::vector<nsgaii::Individual>& population) override;
         std::pair<nsgaii::Individual, nsgaii::Individual> crossover(std::pair<nsgaii::Individual, nsgaii::Individual> selected_parents) override;
-        std::pair<nsgaii::Individual, nsgaii::Individual> second_crossover(std::pair<nsgaii::Individual, nsgaii::Individual> selected_parents);
+        std::pair<nsgaii::Individual, nsgaii::Individual> second_crossover(std::pair<nsgaii::Individual, nsgaii::Individual> selected_parents, float eta);
         std::pair<int, int> int_sbx(int& p1, int& p2, std::pair<int, int>& gene_min, std::pair<int, int>& gene_max, float eta);
         std::pair<float, float> float_sbx(float& p1, float& p2, std::pair<float, float>& gene_min, std::pair<float, float>& gene_max, float eta);
 
