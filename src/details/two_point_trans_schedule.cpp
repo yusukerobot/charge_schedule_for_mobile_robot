@@ -34,13 +34,20 @@ namespace charge_schedule
         // testTwenty();
     }
 
-    nsgaii::Individual TwoTransProblem::generateIndividual()
+    nsgaii::Individual TwoTransProblem::generateIndividual(const bool& charging_number_random, const int& fixed_charging_number)
     {
         std::random_device rd; // ノイズを使用したシード
         std::mt19937 gen(rd()); // メルセンヌ・ツイスタエンジン
+
         std::uniform_int_distribution<> charging_number_dist(min_charge_number, max_charge_number);
-        
-        nsgaii::Individual individual(charging_number_dist(gen));
+
+        nsgaii::Individual individual(max_charge_number);
+
+        if (charging_number_random) {
+            individualResize(individual, charging_number_dist(gen));
+        } else {
+            individualResize(individual, fixed_charging_number);
+        }
 
         std::uniform_int_distribution<> first_soc(80, 100);
         individual.first_soc = first_soc(gen);
@@ -94,8 +101,21 @@ namespace charge_schedule
     }
 
     void TwoTransProblem::generateFirstParents() {
+        bool charging_number_random = true;
         for (int i = 0; i < parents.size(); ++i) {
-            parents[i] = generateIndividual();
+            if (i < 2*parents.size() / 5) {
+                charging_number_random = false;
+                parents[i] = generateIndividual(charging_number_random, 4);
+            } else if (i < 3*parents.size() / 5) {
+                charging_number_random = false;
+                parents[i] = generateIndividual(charging_number_random, 3);
+            } else if (i < 4*parents.size() / 5) {
+                charging_number_random = false;
+                parents[i] = generateIndividual(charging_number_random, 2);
+            } else {
+                charging_number_random = true;
+                parents[i] = generateIndividual(charging_number_random, 4);
+            }
         }
     }
 
@@ -865,7 +885,7 @@ namespace charge_schedule
         }
     }
 
-    void TwoTransProblem::individualResize(nsgaii::Individual& individual, int& new_charging_number) {
+    void TwoTransProblem::individualResize(nsgaii::Individual& individual, int new_charging_number) {
         individual.charging_number = new_charging_number;
         individual.time_chromosome.resize(new_charging_number);
         individual.soc_chromosome.resize(new_charging_number);
@@ -877,6 +897,37 @@ namespace charge_schedule
         individual.charging_position.resize(new_charging_number);
         individual.return_position.resize(new_charging_number);
         individual.cycle_count.resize(new_charging_number + 1);
+    }
+
+    float TwoTransProblem::calculateHypervolume(const std::vector<nsgaii::Individual>& pareto_front, const float& f1_reference, const float& f2_reference) {
+        if (pareto_front.empty()) {
+            return 0.0f; // パレートフロントが空の場合、ハイパーボリュームは 0
+        }
+
+        // ソート対象をコピー（const 安全性を保つため）
+        std::vector<nsgaii::Individual> sorted_pareto_front = pareto_front;
+
+        // f1（第一目的関数）で降順ソート
+        std::sort(sorted_pareto_front.begin(), sorted_pareto_front.end(), [](const nsgaii::Individual& a, const nsgaii::Individual& b) {
+            return a.f1 > b.f1; // 第一目的関数でソート
+        });
+
+        float hypervolume = 0.0f;
+        float previous_f1 = f1_reference;
+
+        // 各点で長方形の面積を計算
+        for (const auto& individual : sorted_pareto_front) {
+            float width = previous_f1 - individual.f1; // f1 軸方向の差
+            float height = f2_reference - individual.f2; // f2 軸方向の差
+
+            if (width > 0 && height > 0) { // 有効な領域のみ計算
+                hypervolume += width * height;
+            }
+
+            previous_f1 = individual.f1; // 次の区間に進む
+        }
+
+        return hypervolume;
     }
 
     void TwoTransProblem::testTwenty() {

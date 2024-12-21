@@ -9,58 +9,30 @@
 void csvDebugParents(std::vector<nsgaii::Individual>& parents, int& generations, const std::string& base_csv_file_path);
 void outputscreen(std::pair<nsgaii::Individual, nsgaii::Individual>& parents,std::pair<nsgaii::Individual, nsgaii::Individual>& children);
 
+
 int main()
 {
-    std::string base_csv_file_path = "../data/parents";
-    std::string config_file_path = "../params/two_charge_schedule.yaml";
+   // ベースとなるCSVファイルのパス（日時を付与するためのテンプレート）
+   std::string base_csv_file_path = "../data/sbx_test";
 
-    std::unique_ptr<charge_schedule::TwoTransProblem> nsgaii = std::make_unique<charge_schedule::TwoTransProblem>(config_file_path);
+   // YAML設定ファイルのパス
+   std::string config_file_path = "../params/two_charge_schedule.yaml";
 
-    int current_generation = 0;
-    bool random = true;
-    float eta = 2;
-    int max_generation = 300;
-    float f1_reference = 200;
-    float f2_reference = 100;
-    float hyper_volume = 0;
-    std::vector<nsgaii::Individual> pareto_front;
+   std::unique_ptr<charge_schedule::TwoTransProblem> nsgaii = std::make_unique<charge_schedule::TwoTransProblem>(config_file_path);
 
-    nsgaii->generateFirstParents();
-    nsgaii->evaluatePopulation(nsgaii->parents);
-    nsgaii->sortPopulation(nsgaii->parents);
+   int current_generation = 0;
+   nsgaii->generateFirstParents();
+   nsgaii->evaluatePopulation(nsgaii->parents);
+   nsgaii->sortPopulation(nsgaii->parents);
+   csvDebugParents(nsgaii->parents, current_generation, base_csv_file_path);
 
-    for (int i = 0; i < nsgaii->parents.size(); ++i) {
-        if (nsgaii->parents[i].fronts_count > 0) break;
-        pareto_front.emplace_back(nsgaii->parents[i]);
-    }
-    hyper_volume = nsgaii->calculateHypervolume(pareto_front, f1_reference, f2_reference);
-    std::cout << current_generation << ". hyper_volume: " << hyper_volume << std::endl;
+   float eta = 2;
+   nsgaii->generateChildren(random, eta);
+   csvDebugParents(nsgaii->children, current_generation, base_csv_file_path);
 
-    while (current_generation < max_generation) {
-        csvDebugParents(nsgaii->parents, current_generation, base_csv_file_path);
-
-        // if (current_generation > 50) {
-        //     eta = 2;
-        // }
-        if (current_generation < 280) {
-            random = false;
-            eta = 80;
-        }
-        nsgaii->generateChildren(random, eta);
-
-        nsgaii->generateCombinedPopulation();
-        nsgaii->sortPopulation(nsgaii->combind_population);
-        nsgaii->generateParents();
-
-        for (int i = 0; i < nsgaii->parents.size(); ++i) {
-            if (nsgaii->parents[i].fronts_count > 0) break;
-            pareto_front.emplace_back(nsgaii->parents[i]);
-        }
-        hyper_volume = nsgaii->calculateHypervolume(pareto_front, f1_reference, f2_reference);
-        std::cout << current_generation << ". hyper_volume: " << hyper_volume << std::endl;
-        ++current_generation;
-    }
-    csvDebugParents(nsgaii->parents, current_generation, base_csv_file_path);
+   eta = 20;
+   nsgaii->generateChildren(random, eta);
+   csvDebugParents(nsgaii->children, current_generation, base_csv_file_path);
 }
 
 void outputscreen(std::pair<nsgaii::Individual, nsgaii::Individual>& parents,std::pair<nsgaii::Individual, nsgaii::Individual>& children) {
@@ -279,36 +251,26 @@ void outputscreen(std::pair<nsgaii::Individual, nsgaii::Individual>& parents,std
 }
 
 void csvDebugParents(std::vector<nsgaii::Individual>& parents, int& generations, const std::string& base_csv_file_path) {
-    // 現在の日時を取得
-    std::time_t now = std::time(nullptr);
-    char date_time[20];
-    std::strftime(date_time, sizeof(date_time), "%Y-%m-%d_%H-%M", std::localtime(&now));
+   // 現在の日時を取得
+   std::time_t now = std::time(nullptr);
+   char date_time[20];
+   std::strftime(date_time, sizeof(date_time), "%Y-%m-%d_%H-%M", std::localtime(&now));
 
-    // 日時を含むファイルパスを生成
-    std::string csv_file_path = base_csv_file_path + "_" + date_time + ".csv";
+   // 日時を含むファイルパスを生成
+   std::string csv_file_path = base_csv_file_path + "_" + date_time + ".csv";
 
-    std::ofstream csvFile(csv_file_path, std::ios::app);
-    if (!csvFile) {
-        std::cerr << "ファイルを開けませんでした！" << std::endl;
-        return;
-    }
+   std::ofstream csvFile(csv_file_path, std::ios::app);
+   if (!csvFile) {
+      std::cerr << "ファイルを開けませんでした！" << std::endl;
+      return;
+   }
 
-    csvFile << "第" << generations << "世代\n";
-    csvFile << "" << "," << "f1" << "," << "f2" << "," << "front\n";
+    // ヘッダーを書き込む
+   csvFile << "第" << generations << "世代\n";
+   csvFile << "f1" << "," << "f2\n";
+   for (const auto& individual : parents) {
+      csvFile << individual.f1 << "," << individual.f2 << "," << individual.fronts_count << "\n";
+   }
 
-    for (const auto& individual : parents) {
-        csvFile << individual.f1 << "," << individual.f2 << "," << individual.first_soc << "," << individual.fronts_count << "\n";
-    //     csvFile << "time" << ",";
-    //     for (auto& time : individual.time_chromosome) {
-    //         csvFile << time << ",";
-    //     }
-    //     csvFile << "\n";
-        // csvFile << "soc" << ",";
-        // for (auto& soc : individual.soc_chromosome) {
-        //     csvFile << soc << ",";
-        // }
-        // csvFile << "\n";
-    }
-
-    csvFile.close();
+   csvFile.close();
 }

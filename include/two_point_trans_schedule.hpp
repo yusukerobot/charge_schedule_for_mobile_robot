@@ -13,7 +13,7 @@ namespace charge_schedule
         TwoTransProblem(const std::string& config_file_path);
         ~TwoTransProblem() override = default;
 
-        nsgaii::Individual generateIndividual();
+        nsgaii::Individual generateIndividual(const bool& charging_number_random, const int& fixed_charging_number);
 
         void generateFirstParents() override;
         void generateChildren(bool random, float eta);
@@ -41,7 +41,9 @@ namespace charge_schedule
 
         void fixAndPenalty(nsgaii::Individual& individual);
         void additionalGen(nsgaii::Individual& individual);
-        void individualResize(nsgaii::Individual& individual, int& new_charging_number);
+        void individualResize(nsgaii::Individual& individual, int new_charging_number);
+
+        float calculateHypervolume(const std::vector<nsgaii::Individual>& pareto_front, const float& f1_reference, const float& f2_reference);
         
     private:
         int min_charge_number;        // 最小充電回数

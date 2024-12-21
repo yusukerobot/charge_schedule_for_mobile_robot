@@ -27,12 +27,6 @@ add_library(two_point_trans_schedule src/details/two_point_trans_schedule.cpp)
 target_include_directories(two_point_trans_schedule PUBLIC ${COMMON_INCLUDE_DIRS})
 target_link_libraries(two_point_trans_schedule PUBLIC nsgaii ${COMMON_LINK_LIBRARIES})
 
-# ---------------------------------
-# three_point_trans_scheduleライブラリ
-# ---------------------------------
-add_library(three_point_trans_schedule src/details/three_point_trans_schedule.cpp)
-target_include_directories(three_point_trans_schedule PUBLIC ${COMMON_INCLUDE_DIRS})
-target_link_libraries(three_point_trans_schedule PUBLIC nsgaii ${COMMON_LINK_LIBRARIES})
 
 # ---------------------------------
 # 実行ファイル設定
@@ -42,9 +36,9 @@ target_link_libraries(three_point_trans_schedule PUBLIC nsgaii ${COMMON_LINK_LIB
 add_executable(two_main src/two_main.cpp)
 target_link_libraries(two_main PUBLIC nsgaii two_point_trans_schedule)
 
-# three_main実行ファイル
-add_executable(three_main src/three_main.cpp)
-target_link_libraries(three_main PUBLIC nsgaii three_point_trans_schedule)
+# sbx_test実行ファイル
+add_executable(sbx_test src/sbx_test.cpp)
+target_link_libraries(sbx_test PUBLIC nsgaii two_point_trans_schedule)
 
 # ---------------------------------
 # インストール設定
@@ -54,9 +48,8 @@ target_link_libraries(three_main PUBLIC nsgaii three_point_trans_schedule)
 install(TARGETS 
     nsgaii 
     two_point_trans_schedule 
-    three_point_trans_schedule 
     two_main
-    three_main
+    sbx_test
 RUNTIME DESTINATION bin   # 実行ファイル
 LIBRARY DESTINATION lib   # 動的ライブラリ
 ARCHIVE DESTINATION lib   # 静的ライブラリ
