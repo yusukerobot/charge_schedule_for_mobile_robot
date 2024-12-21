@@ -49,6 +49,9 @@ namespace nsgaii
 
       virtual void generateFirstParents() = 0;
       virtual void evaluatePopulation(std::vector<nsgaii::Individual>& population) = 0;
+
+      void setEtaSBX(float eta_sbx);
+      void setEtaM(float eta_m);
       
       std::vector<Individual> parents;
       std::vector<Individual> children;
@@ -71,6 +74,9 @@ namespace nsgaii
       int SOC_cccv;                 // cc-cv充電切り替え閾値 [%]
       float r_cc;                   // cc充電速度 [%/min]
       float r_cv;                   // cv充電速度 [%/min]
-      int charging_minimum;                    // 最低充電量 [%]
+      int charging_minimum;         // 最低充電量 [%]
+      float eta_sbx;                // SBX分布指数
+      float eta_m;                  // 突然変異分布指数
+      float mutation_probability;   // 突然変異確率
    };
 } // namespace nsgaii

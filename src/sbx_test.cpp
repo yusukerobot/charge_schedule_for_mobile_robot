@@ -26,12 +26,12 @@ int main()
    nsgaii->sortPopulation(nsgaii->parents);
    csvDebugParents(nsgaii->parents, current_generation, base_csv_file_path);
 
-   float eta = 2;
-   nsgaii->generateChildren(random, eta);
+   nsgaii->setEtaSBX(2.0);
+   nsgaii->generateChildren(random);
    csvDebugParents(nsgaii->children, current_generation, base_csv_file_path);
 
-   eta = 20;
-   nsgaii->generateChildren(random, eta);
+   nsgaii->setEtaSBX(20.0);
+   nsgaii->generateChildren(random);
    csvDebugParents(nsgaii->children, current_generation, base_csv_file_path);
 }
 

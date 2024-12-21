@@ -67,6 +67,9 @@ namespace nsgaii {
       r_cc = config["r_cc"].as<float>();
       r_cv = config["r_cv"].as<float>();
       charging_minimum = config["charging_minimum"].as<int>();
+      eta_sbx = config["eta_sbx"].as<float>();
+      eta_m = config["eta_m"].as<float>();
+      mutation_probability = config["mutation_probability"].as<float>();
 
       // 個体の初期化
       parents.resize(population_size, Individual(max_charge_number));
@@ -454,5 +457,13 @@ namespace nsgaii {
       bool all_less_or_equal = (A.f1 <= B.f1 && A.f2 <= B.f2);
       bool any_less = (A.f1 < B.f1 || A.f2 < B.f2);
       return all_less_or_equal && any_less;
+   }
+
+   void ScheduleNsgaii::setEtaSBX(float eta_sbx) {
+      this->eta_sbx = eta_sbx;
+   }
+
+   void ScheduleNsgaii::setEtaM(float eta_m) {
+      this->eta_m = eta_m;
    }
 } // namespace nsgaii

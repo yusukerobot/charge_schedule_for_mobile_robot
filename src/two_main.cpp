@@ -18,8 +18,7 @@ int main()
 
     int current_generation = 0;
     bool random = true;
-    float eta = 2;
-    int max_generation = 300;
+    int max_generation = 100;
     float f1_reference = 200;
     float f2_reference = 100;
     float hyper_volume = 0;
@@ -39,14 +38,12 @@ int main()
     while (current_generation < max_generation) {
         csvDebugParents(nsgaii->parents, current_generation, base_csv_file_path);
 
-        // if (current_generation > 50) {
-        //     eta = 2;
+        // if (current_generation > 90) {
+        //     // random = false;
+        //     nsgaii->setEtaSBX(20);
+        //     nsgaii->setEtaM(50);
         // }
-        if (current_generation < 280) {
-            random = false;
-            eta = 80;
-        }
-        nsgaii->generateChildren(random, eta);
+        nsgaii->generateChildren(random);
 
         nsgaii->generateCombinedPopulation();
         nsgaii->sortPopulation(nsgaii->combind_population);
