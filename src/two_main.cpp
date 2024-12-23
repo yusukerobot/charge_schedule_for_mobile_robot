@@ -291,20 +291,28 @@ void csvDebugParents(std::vector<nsgaii::Individual>& parents, int& generations,
     }
 
     csvFile << "第" << generations << "世代\n";
-    csvFile << "" << "," << "f1" << "," << "f2" << "," << "front\n";
 
     for (const auto& individual : parents) {
+        csvFile << "f1" << "," << "f2" << "," << "first_soc" << "," << "front\n";
         csvFile << individual.f1 << "," << individual.f2 << "," << individual.first_soc << "," << individual.fronts_count << "\n";
-    //     csvFile << "time" << ",";
-    //     for (auto& time : individual.time_chromosome) {
-    //         csvFile << time << ",";
-    //     }
-    //     csvFile << "\n";
-        // csvFile << "soc" << ",";
-        // for (auto& soc : individual.soc_chromosome) {
-        //     csvFile << soc << ",";
-        // }
-        // csvFile << "\n";
+        csvFile << "time" << "\n";
+        for (size_t i = 0; i < individual.time_chromosome.size(); ++i) {
+            csvFile << individual.time_chromosome[i];
+            if (i != individual.time_chromosome.size() - 1) {
+                csvFile << ",";
+            }
+        }
+        csvFile << "\n";
+
+        // 'soc'データを書き込む
+        csvFile << "soc" << "\n";
+        for (size_t i = 0; i < individual.soc_chromosome.size(); ++i) {
+            csvFile << individual.soc_chromosome[i];
+            if (i != individual.soc_chromosome.size() - 1) {
+                csvFile << ",";
+            }
+        }
+        csvFile << "\n";
     }
 
     csvFile.close();

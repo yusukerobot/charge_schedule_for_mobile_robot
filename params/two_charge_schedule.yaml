@@ -9,7 +9,7 @@ charge_schedule:
   population_size: 200    # 個体群サイズ [-]
   T_max: 500               # 最大作業時間 [min]
   max_charge_number: 20    # 最大充電回数 [回]
-  W_target: 20             # 目標タスク量 [回]
+  W_target: 30             # 目標タスク量 [回]
   SOC_Hi: 80               # SOC高領域閾値 [%]
   SOC_Low: 20              # SOC低領域閾値 [%]
   SOC_cccv: 90             # cc-cv充電切り替え閾値 [%]
