@@ -8,7 +8,15 @@
 
 namespace nsgaii {
    Individual::Individual(const int& chromosome_size)
-   : time_chromosome(chromosome_size, 0), soc_chromosome(chromosome_size, 0), f1(0), f2(0), charging_number(chromosome_size), penalty(0), fronts_count(0), first_soc(100) 
+   : time_chromosome(chromosome_size, 0), 
+   soc_chromosome(chromosome_size, 0), 
+   f1(0), 
+   f2(0), 
+   charging_number(chromosome_size), 
+   penalty(0), 
+   fronts_count(0), 
+   first_soc(100),
+   elapsed_time(0.0f)
    {
       T_span.resize(chromosome_size + 1);
       T_SOC_HiLow.resize(chromosome_size + 1);

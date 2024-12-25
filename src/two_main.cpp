@@ -18,7 +18,7 @@ int main()
 
     int current_generation = 0;
     bool random = true;
-    int max_generation = 100;
+    int max_generation = 200;
     float f1_reference = 200;
     float f2_reference = 100;
     float hyper_volume = 0;
@@ -304,7 +304,7 @@ void csvDebugParents(std::vector<nsgaii::Individual>& parents, int& generations,
         }
         csvFile << "\n";
 
-        // 'soc'データを書き込む
+        // // 'soc'データを書き込む
         csvFile << "soc" << "\n";
         for (size_t i = 0; i < individual.soc_chromosome.size(); ++i) {
             csvFile << individual.soc_chromosome[i];
@@ -313,6 +313,21 @@ void csvDebugParents(std::vector<nsgaii::Individual>& parents, int& generations,
             }
         }
         csvFile << "\n";
+
+        // csvFile << "T_w" << "," << "T_o" << "," << "T_c" << "," << "T_r\n";
+        // for (auto& span : individual.T_span) {
+        //     for (auto& time : span) {
+        //         csvFile << time << ",";
+        //     }
+        //     csvFile << "\n";
+        // }
+
+        // csvFile << "W\n";
+        // for (auto& work : individual.W) {
+        //     csvFile << work << ",";
+        // }
+        // csvFile << "\n";
+        // csvFile << "\n";
     }
 
     csvFile.close();

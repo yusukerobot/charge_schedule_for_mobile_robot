@@ -768,7 +768,7 @@ namespace charge_schedule
             if (SOC_Hi <= individual.soc_charging_start[i]) {
                 T_socHi[1] = individual.T_span[i][2];
             } else if (individual.soc_charging_start[i] <= SOC_Hi && SOC_Hi <= individual.soc_chromosome[i]) {
-                T_socHi[1] = ((individual.soc_chromosome[i] - SOC_Hi) / (individual.soc_chromosome[i] - individual.soc_charging_start[i])) * individual.T_span[i][2];
+                T_socHi[1] = (individual.soc_chromosome[i] - SOC_Hi) / r_cv;
             } else {
                 T_socHi[1] = 0;
             }
@@ -795,7 +795,7 @@ namespace charge_schedule
             if (individual.soc_chromosome[i] <= SOC_Low) {
                 T_socLow[1] = individual.T_span[i][2];
             } else if (individual.soc_charging_start[i] <= SOC_Low && SOC_Low <= individual.soc_chromosome[i]) {
-                T_socLow[1] = ((SOC_Low - individual.soc_charging_start[i]) / (individual.soc_chromosome[i] - individual.soc_charging_start[i])) * individual.T_span[i][2];
+                T_socLow[1] = (SOC_Low - individual.soc_charging_start[i]) / r_cc;
             } else {
                 T_socLow[1] = 0;
             }
@@ -818,7 +818,7 @@ namespace charge_schedule
         }
 
         float first_soc = last_final_soc;
-        float final_soc = (individual.return_position[individual.charging_number - 1] == 0) ? individual.soc_chromosome[individual.charging_number - 1] - individual.E_return[0] : individual.soc_chromosome[individual.charging_number - 1] - individual.E_return[1] - E_standby[1];
+        float final_soc = first_soc - ((individual.T_span[individual.charging_number][0] / T_cycle) * E_cycle);
 
         if (SOC_Hi <= final_soc) {
             T_socHi[0] = individual.T_span[individual.charging_number][0];
@@ -880,7 +880,7 @@ namespace charge_schedule
             int span_size = individual.T_span.size();
             if (calcElapsedTime(individual, span_size) > T_max) {
                 ++individual.penalty;
-            } else if (individual.soc_chromosome[individual.charging_number - 1] - final_discharge < 0) {
+            } else if (individual.soc_chromosome[individual.charging_number - 1] - final_discharge < soc_minimum) {
                 additionalGen(individual);
                 fixAndPenalty(individual);
             }
@@ -901,7 +901,6 @@ namespace charge_schedule
     void TwoTransProblem::additionalGen(nsgaii::Individual& individual) {
         std::random_device rd; // ノイズを使用したシード
         std::mt19937 gen(rd()); // メルセンヌ・ツイスタエンジン
-        std::uniform_int_distribution<> charging_number_dist(min_charge_number, max_charge_number);
         int last_return_position = individual.return_position[individual.charging_number - 1];
         float elapsed_time = calcElapsedTime(individual, individual.charging_number);
         int W_total = individual.W[individual.charging_number - 1];
@@ -918,7 +917,13 @@ namespace charge_schedule
             int cycle = cycle_dist(gen);
 
             individual.time_chromosome[i] = calcTimeChromosome(cycle, last_return_position, charging_timing_position, elapsed_time);
-            individual.soc_charging_start[i] = (i == 0) ? calcSOCchargingStart(100, cycle, last_return_position, charging_timing_position) : calcSOCchargingStart(individual.soc_chromosome[i - 1] - E_cs[last_return_position], cycle, last_return_position, charging_timing_position);
+            if (i == 0) {
+                individual.soc_charging_start[i] = calcSOCchargingStart(individual.first_soc, cycle, last_return_position, charging_timing_position);
+            } else if (last_return_position == 1) {
+                individual.soc_charging_start[i] = calcSOCchargingStart(individual.soc_chromosome[i - 1] - E_standby[1] - E_cs[1], cycle, last_return_position, charging_timing_position);
+            } else {
+                individual.soc_charging_start[i] = calcSOCchargingStart(individual.soc_chromosome[i - 1] - E_cs[0], cycle, last_return_position, charging_timing_position);
+            }
 
             float target_soc_min = individual.soc_charging_start[i] + charging_minimum;
             if (target_soc_min >= 100) { target_soc_min = 100; }
@@ -928,11 +933,11 @@ namespace charge_schedule
             individual.T_span[i][0] = individual.time_chromosome[i] - elapsed_time;
             individual.T_span[i][1] = T_cs[charging_timing_position];
             individual.T_span[i][2] = calcChargingTime(individual.soc_charging_start[i], individual.soc_chromosome[i]);
-            individual.T_span[i][3] = (return_position == 0) ? T_cs[return_position] : T_cs[return_position] + T_standby[1];
+            individual.T_span[i][3] = (return_position == 0) ? T_cs[0] : T_cs[1] + T_standby[1];
 
             W_total += calcTotalWork(cycle, last_return_position, charging_timing_position);
             individual.W[i] = W_total;
-            individual.E_return[i] = (return_position == 0) ? E_cs[return_position] : E_cs[return_position] + E_standby[1];
+            individual.E_return[i] = (return_position == 0) ? E_cs[0] : E_cs[1] + E_standby[1];
             individual.charging_position[i] = charging_timing_position;
             individual.return_position[i] = return_position;
             individual.cycle_count[i] = cycle;
