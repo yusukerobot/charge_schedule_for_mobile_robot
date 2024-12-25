@@ -18,7 +18,7 @@ int main()
 
     int current_generation = 0;
     bool random = true;
-    int max_generation = 200;
+    int max_generation = 100;
     float f1_reference = 200;
     float f2_reference = 100;
     float hyper_volume = 0;

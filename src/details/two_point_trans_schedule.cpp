@@ -49,7 +49,7 @@ namespace charge_schedule
             individualResize(individual, fixed_charging_number);
         }
 
-        std::uniform_int_distribution<> first_soc(80, 100);
+        std::uniform_int_distribution<> first_soc(100, 100);
         individual.first_soc = first_soc(gen);
 
         int last_return_position = 0;
