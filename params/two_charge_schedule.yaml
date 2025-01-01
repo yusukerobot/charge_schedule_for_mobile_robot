@@ -16,6 +16,6 @@ charge_schedule:
   r_cc: 1.98                # cc充電速度 [%/min]
   r_cv: 0.98                # cv充電速度 [%/min]
   charging_minimum: 5      # 最低充電量 [%]
-  eta_sbx: 2              # SBX分布指数
+  eta_sbx: 50            # SBX分布指数
   eta_m: 5                # 突然変異分布指数
   mutation_probability: 0.1 # 突然変異確率

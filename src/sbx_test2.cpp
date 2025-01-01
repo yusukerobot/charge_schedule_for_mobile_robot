@@ -9,57 +9,116 @@
 void csvDebugParents(std::vector<nsgaii::Individual>& parents, int& generations, const std::string& base_csv_file_path);
 void outputscreen(std::pair<nsgaii::Individual, nsgaii::Individual>& parents,std::pair<nsgaii::Individual, nsgaii::Individual>& children);
 
-
 int main()
 {
-   // ベースとなるCSVファイルのパス（日時を付与するためのテンプレート）
-   std::string base_csv_file_path = "../data/no_mutation_first_sbx";
+    std::string config_file_path = "../params/two_charge_schedule.yaml";
 
-   // YAML設定ファイルのパス
-   std::string config_file_path = "../params/two_charge_schedule.yaml";
+    std::unique_ptr<charge_schedule::TwoTransProblem> nsgaii = std::make_unique<charge_schedule::TwoTransProblem>(config_file_path);
 
-   std::unique_ptr<charge_schedule::TwoTransProblem> nsgaii = std::make_unique<charge_schedule::TwoTransProblem>(config_file_path);
+    int current_generation = 0;
+    bool random = true;
+    int max_generation = 100;
 
-   int current_generation = 0;
-   nsgaii->generateFirstParents();
-   nsgaii->evaluatePopulation(nsgaii->parents);
-   nsgaii->sortPopulation(nsgaii->parents);
-   csvDebugParents(nsgaii->parents, current_generation, base_csv_file_path);
+    nsgaii->generateFirstParents();
+    nsgaii->evaluatePopulation(nsgaii->parents);
+    nsgaii->sortPopulation(nsgaii->parents);
+    std::vector<nsgaii::Individual> first_parents = nsgaii->parents;
 
-   current_generation = 2.0;
-   nsgaii->setEtaSBX(2.0);
-   nsgaii->generateChildren(random);
-   nsgaii->evaluatePopulation(nsgaii->children);
-   nsgaii->sortPopulation(nsgaii->children);
-   csvDebugParents(nsgaii->children, current_generation, base_csv_file_path);
+    std::string base_csv_file_path = "../data/sbx/eta2";
+    nsgaii->setEtaSBX(2);
+    while (current_generation < max_generation) {
+        csvDebugParents(nsgaii->parents, current_generation, base_csv_file_path);
 
-   current_generation = 5.0;
-   nsgaii->setEtaSBX(5.0);
-   nsgaii->generateChildren(random);
-   nsgaii->evaluatePopulation(nsgaii->children);
-   nsgaii->sortPopulation(nsgaii->children);
-   csvDebugParents(nsgaii->children, current_generation, base_csv_file_path);
+        nsgaii->generateChildren(random);
 
-   current_generation = 10.0;
-   nsgaii->setEtaSBX(10.0);
-   nsgaii->generateChildren(random);
-   nsgaii->evaluatePopulation(nsgaii->children);
-   nsgaii->sortPopulation(nsgaii->children);
-   csvDebugParents(nsgaii->children, current_generation, base_csv_file_path);
+        nsgaii->generateCombinedPopulation();
+        nsgaii->sortPopulation(nsgaii->combind_population);
+        nsgaii->generateParents();
 
-   current_generation = 20.0;
-   nsgaii->setEtaSBX(20.0);
-   nsgaii->generateChildren(random);
-   nsgaii->evaluatePopulation(nsgaii->children);
-   nsgaii->sortPopulation(nsgaii->children);
-   csvDebugParents(nsgaii->children, current_generation, base_csv_file_path);
+        ++current_generation;
+    }
+    csvDebugParents(nsgaii->parents, current_generation, base_csv_file_path);
 
-   current_generation = 50.0;
-   nsgaii->setEtaSBX(50.0);
-   nsgaii->generateChildren(random);
-   nsgaii->evaluatePopulation(nsgaii->children);
-   nsgaii->sortPopulation(nsgaii->children);
-   csvDebugParents(nsgaii->children, current_generation, base_csv_file_path);
+    base_csv_file_path = "../data/sbx/eta5";
+    nsgaii->parents.clear();
+    nsgaii->parents = first_parents;
+    nsgaii->evaluatePopulation(nsgaii->parents);
+    nsgaii->sortPopulation(nsgaii->parents);
+    nsgaii->setEtaSBX(5);
+    current_generation = 0;
+    while (current_generation < max_generation) {
+        csvDebugParents(nsgaii->parents, current_generation, base_csv_file_path);
+
+        nsgaii->generateChildren(random);
+
+        nsgaii->generateCombinedPopulation();
+        nsgaii->sortPopulation(nsgaii->combind_population);
+        nsgaii->generateParents();
+
+        ++current_generation;
+    }
+    csvDebugParents(nsgaii->parents, current_generation, base_csv_file_path);
+
+    base_csv_file_path = "../data/sbx/eta10";
+    nsgaii->parents.clear();
+    nsgaii->parents = first_parents;
+    nsgaii->evaluatePopulation(nsgaii->parents);
+    nsgaii->sortPopulation(nsgaii->parents);
+    nsgaii->setEtaSBX(10);
+    current_generation = 0;
+    while (current_generation < max_generation) {
+        csvDebugParents(nsgaii->parents, current_generation, base_csv_file_path);
+
+        nsgaii->generateChildren(random);
+
+        nsgaii->generateCombinedPopulation();
+        nsgaii->sortPopulation(nsgaii->combind_population);
+        nsgaii->generateParents();
+
+        ++current_generation;
+    }
+    csvDebugParents(nsgaii->parents, current_generation, base_csv_file_path);
+
+    base_csv_file_path = "../data/sbx/eta20";
+    nsgaii->parents.clear();
+    nsgaii->parents = first_parents;
+    nsgaii->evaluatePopulation(nsgaii->parents);
+    nsgaii->sortPopulation(nsgaii->parents);
+    nsgaii->setEtaSBX(20);
+    current_generation = 0;
+    while (current_generation < max_generation) {
+        csvDebugParents(nsgaii->parents, current_generation, base_csv_file_path);
+
+        nsgaii->generateChildren(random);
+
+        nsgaii->generateCombinedPopulation();
+        nsgaii->sortPopulation(nsgaii->combind_population);
+        nsgaii->generateParents();
+
+        ++current_generation;
+    }
+    csvDebugParents(nsgaii->parents, current_generation, base_csv_file_path);
+
+    base_csv_file_path = "../data/sbx/eta50";
+    nsgaii->parents.clear();
+    nsgaii->parents = first_parents;
+    nsgaii->evaluatePopulation(nsgaii->parents);
+    nsgaii->sortPopulation(nsgaii->parents);
+    nsgaii->setEtaSBX(50);
+    current_generation = 0;
+    while (current_generation < max_generation) {
+        csvDebugParents(nsgaii->parents, current_generation, base_csv_file_path);
+
+        nsgaii->generateChildren(random);
+
+        nsgaii->generateCombinedPopulation();
+        nsgaii->sortPopulation(nsgaii->combind_population);
+        nsgaii->generateParents();
+
+        ++current_generation;
+    }
+    csvDebugParents(nsgaii->parents, current_generation, base_csv_file_path);
+
 }
 
 void outputscreen(std::pair<nsgaii::Individual, nsgaii::Individual>& parents,std::pair<nsgaii::Individual, nsgaii::Individual>& children) {

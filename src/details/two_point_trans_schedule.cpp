@@ -341,12 +341,12 @@ namespace charge_schedule
             std::pair<float, float> target_time = float_sbx(selected_parents.first.time_chromosome[i], selected_parents.second.time_chromosome[i], min_time, max_time);
 
             std::uniform_real_distribution<> time_mutate_dis(0.0, 1.0);
-            if (time_mutate_dis(gen) < mutation_probability) {
-                target_time.first = timePolynomialMutation(target_time.first, max_time.first, min_time.first);
-            }
-            if (time_mutate_dis(gen) < mutation_probability) {
-                target_time.second = timePolynomialMutation(target_time.second, max_time.second, min_time.second);
-            }
+            // if (time_mutate_dis(gen) < mutation_probability) {
+            //     target_time.first = timePolynomialMutation(target_time.first, max_time.first, min_time.first);
+            // }
+            // if (time_mutate_dis(gen) < mutation_probability) {
+            //     target_time.second = timePolynomialMutation(target_time.second, max_time.second, min_time.second);
+            // }
 
             std::pair<int, int>c1_cycle_posit = timeToCycleAndPosition(target_time.first, c1_last_return_position, c1_elapsed_time);
             std::pair<int, int>c2_cycle_posit = timeToCycleAndPosition(target_time.second, c2_last_return_position, c2_elapsed_time);
@@ -446,9 +446,9 @@ namespace charge_schedule
             }
 
             std::uniform_real_distribution<> time_mutate_dis(0.0, 1.0);
-            if (time_mutate_dis(gen) < mutation_probability) {
-                target_time = timePolynomialMutation(target_time, c2_max_time, c2_min_time);
-            }
+            // if (time_mutate_dis(gen) < mutation_probability) {
+            //     target_time = timePolynomialMutation(target_time, c2_max_time, c2_min_time);
+            // }
 
             std::pair<int, int>c2_cycle_posit = timeToCycleAndPosition(target_time, c2_last_return_position, c2_elapsed_time);
 
