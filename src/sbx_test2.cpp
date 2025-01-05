@@ -3,347 +3,76 @@
 #include <yaml-cpp/yaml.h>
 #include <fstream>
 #include <ctime>
+#include <vector>
 
 #include "two_point_trans_schedule.hpp"
 
-void csvDebugParents(std::vector<nsgaii::Individual>& parents, int& generations, const std::string& base_csv_file_path);
-void outputscreen(std::pair<nsgaii::Individual, nsgaii::Individual>& parents,std::pair<nsgaii::Individual, nsgaii::Individual>& children);
+void csvDebugParents(std::vector<nsgaii::Individual>& parents, int generation, const std::string& base_csv_file_path);
+void runGenerationLoop(std::unique_ptr<charge_schedule::TwoTransProblem>& nsgaii, const std::string& base_csv_file_path, const std::vector<int>& eta_values, int max_generation);
 
 int main()
 {
     std::string config_file_path = "../params/two_charge_schedule.yaml";
-
     std::unique_ptr<charge_schedule::TwoTransProblem> nsgaii = std::make_unique<charge_schedule::TwoTransProblem>(config_file_path);
 
-    int current_generation = 0;
-    bool random = true;
-    int max_generation = 100;
+    // etaの最小値、最大値、ステップ数を指定
+    int eta_min = 1;
+    int eta_max = 50;
+    int eta_step = 1;
 
+    // etaの値を作成
+    std::vector<int> eta_values;
+    for (int eta = eta_min; eta <= eta_max; eta += eta_step) {
+        eta_values.push_back(eta);
+    }
+
+    // 生成ループを実行
+    runGenerationLoop(nsgaii, "../data/sbx/eta", eta_values, 100);
+
+    return 0;
+}
+
+void runGenerationLoop(std::unique_ptr<charge_schedule::TwoTransProblem>& nsgaii, const std::string& base_csv_file_path, const std::vector<int>& eta_values, int max_generation)
+{
+    // 最初の親を生成
     nsgaii->generateFirstParents();
     nsgaii->evaluatePopulation(nsgaii->parents);
     nsgaii->sortPopulation(nsgaii->parents);
     std::vector<nsgaii::Individual> first_parents = nsgaii->parents;
 
-    std::string base_csv_file_path = "../data/sbx/eta2";
-    nsgaii->setEtaSBX(2);
-    while (current_generation < max_generation) {
-        csvDebugParents(nsgaii->parents, current_generation, base_csv_file_path);
+    for (int eta : eta_values) {
+        // 各etaに対して処理を実行
+        std::string eta_csv_file_path = base_csv_file_path + std::to_string(eta);
+        nsgaii->setEtaSBX(eta);  // SBXで使用するetaを設定
+        int current_generation = 0;
 
-        nsgaii->generateChildren(random);
+        // 親を元にした世代ごとの進行
+        nsgaii->parents.clear();
+        nsgaii->parents = first_parents;
 
-        nsgaii->generateCombinedPopulation();
-        nsgaii->sortPopulation(nsgaii->combind_population);
-        nsgaii->generateParents();
+        while (current_generation < max_generation) {
+            csvDebugParents(nsgaii->parents, current_generation, eta_csv_file_path);
+            nsgaii->generateChildren(false);  // randomフラグはfalse
+            nsgaii->evaluatePopulation(nsgaii->children);
+            nsgaii->generateCombinedPopulation();
+            nsgaii->sortPopulation(nsgaii->combind_population);
+            nsgaii->generateParents();
 
-        ++current_generation;
+            ++current_generation;
+        }
+        csvDebugParents(nsgaii->parents, current_generation, eta_csv_file_path);
     }
-    csvDebugParents(nsgaii->parents, current_generation, base_csv_file_path);
-
-    base_csv_file_path = "../data/sbx/eta5";
-    nsgaii->parents.clear();
-    nsgaii->parents = first_parents;
-    nsgaii->evaluatePopulation(nsgaii->parents);
-    nsgaii->sortPopulation(nsgaii->parents);
-    nsgaii->setEtaSBX(5);
-    current_generation = 0;
-    while (current_generation < max_generation) {
-        csvDebugParents(nsgaii->parents, current_generation, base_csv_file_path);
-
-        nsgaii->generateChildren(random);
-
-        nsgaii->generateCombinedPopulation();
-        nsgaii->sortPopulation(nsgaii->combind_population);
-        nsgaii->generateParents();
-
-        ++current_generation;
-    }
-    csvDebugParents(nsgaii->parents, current_generation, base_csv_file_path);
-
-    base_csv_file_path = "../data/sbx/eta10";
-    nsgaii->parents.clear();
-    nsgaii->parents = first_parents;
-    nsgaii->evaluatePopulation(nsgaii->parents);
-    nsgaii->sortPopulation(nsgaii->parents);
-    nsgaii->setEtaSBX(10);
-    current_generation = 0;
-    while (current_generation < max_generation) {
-        csvDebugParents(nsgaii->parents, current_generation, base_csv_file_path);
-
-        nsgaii->generateChildren(random);
-
-        nsgaii->generateCombinedPopulation();
-        nsgaii->sortPopulation(nsgaii->combind_population);
-        nsgaii->generateParents();
-
-        ++current_generation;
-    }
-    csvDebugParents(nsgaii->parents, current_generation, base_csv_file_path);
-
-    base_csv_file_path = "../data/sbx/eta20";
-    nsgaii->parents.clear();
-    nsgaii->parents = first_parents;
-    nsgaii->evaluatePopulation(nsgaii->parents);
-    nsgaii->sortPopulation(nsgaii->parents);
-    nsgaii->setEtaSBX(20);
-    current_generation = 0;
-    while (current_generation < max_generation) {
-        csvDebugParents(nsgaii->parents, current_generation, base_csv_file_path);
-
-        nsgaii->generateChildren(random);
-
-        nsgaii->generateCombinedPopulation();
-        nsgaii->sortPopulation(nsgaii->combind_population);
-        nsgaii->generateParents();
-
-        ++current_generation;
-    }
-    csvDebugParents(nsgaii->parents, current_generation, base_csv_file_path);
-
-    base_csv_file_path = "../data/sbx/eta50";
-    nsgaii->parents.clear();
-    nsgaii->parents = first_parents;
-    nsgaii->evaluatePopulation(nsgaii->parents);
-    nsgaii->sortPopulation(nsgaii->parents);
-    nsgaii->setEtaSBX(50);
-    current_generation = 0;
-    while (current_generation < max_generation) {
-        csvDebugParents(nsgaii->parents, current_generation, base_csv_file_path);
-
-        nsgaii->generateChildren(random);
-
-        nsgaii->generateCombinedPopulation();
-        nsgaii->sortPopulation(nsgaii->combind_population);
-        nsgaii->generateParents();
-
-        ++current_generation;
-    }
-    csvDebugParents(nsgaii->parents, current_generation, base_csv_file_path);
-
 }
 
-void outputscreen(std::pair<nsgaii::Individual, nsgaii::Individual>& parents,std::pair<nsgaii::Individual, nsgaii::Individual>& children) {
-    std::cout << "--- First ---" << std::endl;
-    std::cout << "p1: " << std::endl;
-    // std::cout << "  time: ";
-    // for (float& time : parents.first.time_chromosome) {
-    //     std::cout << time << " ";
-    // }
-    // std::cout << std::endl;
-    // std::cout << "  soc: ";
-    // for (auto& soc : parents.first.soc_chromosome) {
-    //     std::cout << soc << " ";
-    // }
-    // std::cout << std::endl;
-    // std::cout << "  W: ";
-    // for (auto& W : parents.first.W) {
-    //     std::cout << W << " ";
-    // }
-    // std::cout << std::endl;
-    // std::cout << "  T_span: ";
-    // for (auto& span : parents.first.T_span) {
-    //     float elapsed_time = 0;
-    //     for (auto& time : span) {
-    //         elapsed_time += time;
-    //     }
-    //     std::cout << elapsed_time << " ";
-    // }
-    // std::cout << std::endl;
-    // std::cout << "  E_return: ";
-    // for (auto& e : parents.first.E_return) {
-    //     std::cout << e << " ";
-    // }
-    // std::cout << std::endl;
-    // std::cout << "  soc_charging_start: ";
-    // for (auto& soc : parents.first.soc_charging_start) {
-    //     std::cout << soc << " ";
-    // }
-    // std::cout << std::endl;
-    // std::cout << "  charging_position: ";
-    // for (auto& pos : parents.first.charging_position) {
-    //     std::cout << pos << " ";
-    // }
-    // std::cout << std::endl;
-    // std::cout << "  return_position: ";
-    // for (auto& pos : parents.first.return_position) {
-    //     std::cout << pos << " ";
-    // }
-    // std::cout << std::endl;
-    // std::cout << "  cycle_count: ";
-    // for (auto& count : parents.first.cycle_count) {
-    //     std::cout << count << " ";
-    // }
-    // std::cout << std::endl;
-    std::cout << "f1: " << parents.first.f1 << " f2: " << parents.first.f2 << std::endl;
-
-    std::cout << "c1: " << std::endl;
-    // std::cout << "  time: ";
-    // for (float& time : children.first.time_chromosome) {
-    //     std::cout << time << " ";
-    // }
-    // std::cout << std::endl;
-    // std::cout << "  soc: ";
-    // for (auto& soc : children.first.soc_chromosome) {
-    //     std::cout << soc << " ";
-    // }
-    // std::cout << std::endl;
-    // std::cout << "  W: ";
-    // for (auto& W : children.first.W) {
-    //     std::cout << W << " ";
-    // }
-    // std::cout << std::endl;
-    // std::cout << "  T_span: ";
-    // for (auto& span : children.first.T_span) {
-    //     float elapsed_time = 0;
-    //     for (auto& time : span) {
-    //         elapsed_time += time;
-    //     }
-    //     std::cout << elapsed_time << " ";
-    // }
-    // std::cout << std::endl;
-    // std::cout << "  E_return: ";
-    // for (auto& e : children.first.E_return) {
-    //     std::cout << e << " ";
-    // }
-    // std::cout << std::endl;
-    // std::cout << "  soc_charging_start: ";
-    // for (auto& soc : children.first.soc_charging_start) {
-    //     std::cout << soc << " ";
-    // }
-    // std::cout << std::endl;
-    // std::cout << "  charging_position: ";
-    // for (auto& pos : children.first.charging_position) {
-    //     std::cout << pos << " ";
-    // }
-    // std::cout << std::endl;
-    // std::cout << "  return_position: ";
-    // for (auto& pos : children.first.return_position) {
-    //     std::cout << pos << " ";
-    // }
-    // std::cout << std::endl;
-    // std::cout << "  cycle_count: ";
-    // for (auto& count : children.first.cycle_count) {
-    //     std::cout << count << " ";
-    // }
-    // std::cout << std::endl;
-    std::cout << "f1: " << children.first.f1 << " f2: " << children.first.f2 << std::endl;
-    std::cout << std::endl;
-
-    std::cout << "--- Second ---" << std::endl;
-    std::cout << "p2: " << std::endl;
-    // std::cout << "  time: ";
-    // for (float& time : parents.second.time_chromosome) {
-    //     std::cout << time << " ";
-    // }
-    // std::cout << std::endl;
-    // std::cout << "  soc: ";
-    // for (auto& soc : parents.second.soc_chromosome) {
-    //     std::cout << soc << " ";
-    // }
-    // std::cout << std::endl;
-    // std::cout << "  W: ";
-    // for (auto& W : parents.second.W) {
-    //     std::cout << W << " ";
-    // }
-    // std::cout << std::endl;
-    // std::cout << "  T_span: ";
-    // for (auto& span : parents.second.T_span) {
-    //     float elapsed_time = 0;
-    //     for (auto& time : span) {
-    //         elapsed_time += time;
-    //     }
-    //     std::cout << elapsed_time << " ";
-    // }
-    // std::cout << std::endl;
-    // std::cout << "  E_return: ";
-    // for (auto& e : parents.second.E_return) {
-    //     std::cout << e << " ";
-    // }
-    // std::cout << std::endl;
-    // std::cout << "  soc_charging_start: ";
-    // for (auto& soc : parents.second.soc_charging_start) {
-    //     std::cout << soc << " ";
-    // }
-    // std::cout << std::endl;
-    // std::cout << "  charging_position: ";
-    // for (auto& pos : parents.second.charging_position) {
-    //     std::cout << pos << " ";
-    // }
-    // std::cout << std::endl;
-    // std::cout << "  return_position: ";
-    // for (auto& pos : parents.second.return_position) {
-    //     std::cout << pos << " ";
-    // }
-    // std::cout << std::endl;
-    // std::cout << "  cycle_count: ";
-    // for (auto& count : parents.second.cycle_count) {
-    //     std::cout << count << " ";
-    // }
-    // std::cout << std::endl;
-    std::cout << "f1: " << parents.second.f1 << " f2: " << parents.second.f2 << std::endl;
-
-    std::cout << "c2: " << std::endl;
-    // std::cout << "  time: ";
-    // for (float& time : children.second.time_chromosome) {
-    //     std::cout << time << " ";
-    // }
-    // std::cout << std::endl;
-    // std::cout << "  soc: ";
-    // for (auto& soc : children.second.soc_chromosome) {
-    //     std::cout << soc << " ";
-    // }
-    // std::cout << std::endl;
-    // std::cout << "  W: ";
-    // for (auto& W : children.second.W) {
-    //     std::cout << W << " ";
-    // }
-    // std::cout << std::endl;
-    // std::cout << "  T_span: ";
-    // for (auto& span : children.second.T_span) {
-    //     float elapsed_time = 0;
-    //     for (auto& time : span) {
-    //         elapsed_time += time;
-    //     }
-    //     std::cout << elapsed_time << " ";
-    // }
-    // std::cout << std::endl;
-    // std::cout << "  E_return: ";
-    // for (auto& e : children.second.E_return) {
-    //     std::cout << e << " ";
-    // }
-    // std::cout << std::endl;
-    // std::cout << "  soc_charging_start: ";
-    // for (auto& soc : children.second.soc_charging_start) {
-    //     std::cout << soc << " ";
-    // }
-    // std::cout << std::endl;
-    // std::cout << "  charging_position: ";
-    // for (auto& pos : children.second.charging_position) {
-    //     std::cout << pos << " ";
-    // }
-    // std::cout << std::endl;
-    // std::cout << "  return_position: ";
-    // for (auto& pos : children.second.return_position) {
-    //     std::cout << pos << " ";
-    // }
-    // std::cout << std::endl;
-    // std::cout << "  cycle_count: ";
-    // for (auto& count : children.second.cycle_count) {
-    //     std::cout << count << " ";
-    // }
-    // std::cout << std::endl;
-    std::cout << "f1: " << children.second.f1 << " f2: " << children.second.f2 << std::endl;
-    std::cout << "--- --- ---" << std::endl;
-
-}
-
-void csvDebugParents(std::vector<nsgaii::Individual>& parents, int& generations, const std::string& base_csv_file_path) {
+void csvDebugParents(std::vector<nsgaii::Individual>& parents, int generation, const std::string& base_csv_file_path)
+{
     // 現在の日時を取得
     std::time_t now = std::time(nullptr);
     char date_time[20];
     std::strftime(date_time, sizeof(date_time), "%Y-%m-%d_%H-%M", std::localtime(&now));
 
     // 日時を含むファイルパスを生成
-    std::string csv_file_path = base_csv_file_path + "_" + date_time + ".csv";
+    std::string csv_file_path = base_csv_file_path + ".csv";
 
     std::ofstream csvFile(csv_file_path, std::ios::app);
     if (!csvFile) {
@@ -351,7 +80,7 @@ void csvDebugParents(std::vector<nsgaii::Individual>& parents, int& generations,
         return;
     }
 
-    csvFile << "第" << generations << "世代\n";
+    csvFile << "第" << generation << "世代\n";
 
     for (const auto& individual : parents) {
         csvFile << "f1" << "," << "f2" << "," << "first_soc" << "," << "front\n";
@@ -365,7 +94,7 @@ void csvDebugParents(std::vector<nsgaii::Individual>& parents, int& generations,
         }
         csvFile << "\n";
 
-        // // 'soc'データを書き込む
+        // 'soc'データを書き込む
         csvFile << "soc" << "\n";
         for (size_t i = 0; i < individual.soc_chromosome.size(); ++i) {
             csvFile << individual.soc_chromosome[i];
@@ -374,21 +103,6 @@ void csvDebugParents(std::vector<nsgaii::Individual>& parents, int& generations,
             }
         }
         csvFile << "\n";
-
-        // csvFile << "T_w" << "," << "T_o" << "," << "T_c" << "," << "T_r\n";
-        // for (auto& span : individual.T_span) {
-        //     for (auto& time : span) {
-        //         csvFile << time << ",";
-        //     }
-        //     csvFile << "\n";
-        // }
-
-        // csvFile << "W\n";
-        // for (auto& work : individual.W) {
-        //     csvFile << work << ",";
-        // }
-        // csvFile << "\n";
-        // csvFile << "\n";
     }
 
     csvFile.close();

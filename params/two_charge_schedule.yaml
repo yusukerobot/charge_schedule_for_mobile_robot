@@ -6,7 +6,7 @@ charge_schedule:
   E_standby: [1.73, 1.73]  # 待機中の放電量 [%]
   E_cs: [0.47, 0.47]       # 充電ステーションへの移動中の放電量 [%]
   visited_number: 2        # 訪問先の数 [個]
-  population_size: 300    # 個体群サイズ [-]
+  population_size: 200    # 個体群サイズ [-]
   T_max: 500               # 最大作業時間 [min]
   max_charge_number: 20    # 最大充電回数 [回]
   W_target: 30             # 目標タスク量 [回]
@@ -16,6 +16,6 @@ charge_schedule:
   r_cc: 1.98                # cc充電速度 [%/min]
   r_cv: 0.98                # cv充電速度 [%/min]
   charging_minimum: 5      # 最低充電量 [%]
-  eta_sbx: 50            # SBX分布指数
+  eta_sbx: 5            # SBX分布指数
   eta_m: 5                # 突然変異分布指数
   mutation_probability: 0.1 # 突然変異確率

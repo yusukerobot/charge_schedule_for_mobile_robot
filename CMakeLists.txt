@@ -44,6 +44,10 @@ target_link_libraries(sbx_test PUBLIC nsgaii two_point_trans_schedule)
 add_executable(sbx_test2 src/sbx_test2.cpp)
 target_link_libraries(sbx_test2 PUBLIC nsgaii two_point_trans_schedule)
 
+# sbx_test実行ファイル
+add_executable(sbx_test3 src/sbx_test3.cpp)
+target_link_libraries(sbx_test3 PUBLIC nsgaii two_point_trans_schedule)
+
 # ---------------------------------
 # インストール設定
 # ---------------------------------

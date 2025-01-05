@@ -120,47 +120,64 @@ namespace charge_schedule
     }
 
     void TwoTransProblem::generateChildren(bool random) {
-        size_t i = 0;
-        std::set<std::pair<float, float>> existing_objectives; // 評価値を記録するセット
+        // size_t i = 0;
+        // std::set<std::pair<float, float>> existing_objectives; // 評価値を記録するセット
 
-        // 現在の親集団の評価値をセットに追加
-        for (const auto& parent : parents) {
-            existing_objectives.insert({parent.f1, parent.f2});
-        }
+        // // 現在の親集団の評価値をセットに追加
+        // for (const auto& parent : parents) {
+        //     existing_objectives.insert({parent.f1, parent.f2});
+        // }
+
+        // std::pair<nsgaii::Individual, nsgaii::Individual> selected_parents = randomSelection();
+        // std::pair<nsgaii::Individual, nsgaii::Individual> child(selected_parents.first.charging_number, selected_parents.second.charging_number);
+
+        // while (i < children.size()) {
+
+        //     int count = 0;
+        //     do {
+        //         // 子個体を生成
+        //         if (random) {
+        //             selected_parents = randomSelection();
+        //         } else {
+        //             selected_parents = rankingSelection();
+        //         }
+        //         child = second_crossover(selected_parents);
+        //         calucObjectiveFunction(child.first);
+        //         calucObjectiveFunction(child.second);
+        //         ++count;
+        //         // std::cout << count << std::endl;
+        //         if (count > 1000) break;
+        //     } while (
+        //         existing_objectives.count({child.first.f1, child.first.f2}) > 0 ||
+        //         existing_objectives.count({child.second.f1, child.second.f2}) > 0
+        //     );
+
+        //     // 子個体の評価値をセットに追加
+        //     existing_objectives.insert({child.first.f1, child.first.f2});
+        //     existing_objectives.insert({child.second.f1, child.second.f2});
+
+        //     // 子個体を追加
+        //     children[i] = child.first;
+        //     children[i + 1] = child.second;
+        //     i += 2;
+        // }
 
         std::pair<nsgaii::Individual, nsgaii::Individual> selected_parents = randomSelection();
         std::pair<nsgaii::Individual, nsgaii::Individual> child(selected_parents.first.charging_number, selected_parents.second.charging_number);
-
+        size_t i = 0;
         while (i < children.size()) {
-
-            int count = 0;
-            do {
-                // 子個体を生成
-                if (random) {
-                    selected_parents = randomSelection();
-                } else {
-                    selected_parents = rankingSelection();
-                }
-                child = second_crossover(selected_parents);
-                calucObjectiveFunction(child.first);
-                calucObjectiveFunction(child.second);
-                ++count;
-                // std::cout << count << std::endl;
-                if (count > 1000) break;
-            } while (
-                existing_objectives.count({child.first.f1, child.first.f2}) > 0 ||
-                existing_objectives.count({child.second.f1, child.second.f2}) > 0
-            );
-
-            // 子個体の評価値をセットに追加
-            existing_objectives.insert({child.first.f1, child.first.f2});
-            existing_objectives.insert({child.second.f1, child.second.f2});
-
-            // 子個体を追加
+            if (random) {
+                selected_parents = randomSelection();
+            } else {
+                selected_parents = rankingSelection();
+            }
+            child = second_crossover(selected_parents);
             children[i] = child.first;
             children[i + 1] = child.second;
             i += 2;
         }
+        
+
     }
 
     void TwoTransProblem::evaluatePopulation(std::vector<nsgaii::Individual>& population) {
@@ -567,6 +584,7 @@ namespace charge_schedule
         std::uniform_real_distribution<> dist(0.0, 1.0);
 
         float u = dist(gen);
+        // u = 0.7;
         float beta = (u <= 0.5) 
                     ? pow(2 * u, 1.0 / (eta_sbx + 1)) 
                     : pow(1.0 / (2 * (1 - u)), 1.0 / (eta_sbx + 1));

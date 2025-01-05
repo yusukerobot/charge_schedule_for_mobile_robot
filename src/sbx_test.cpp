@@ -6,6 +6,14 @@
 
 #include "two_point_trans_schedule.hpp"
 
+void generateEtaValues(float min, float max, int steps, std::vector<float>& etaValues) {
+    float stepSize = (max - min + 1) / steps;  // ステップごとの増分
+
+    for (int i = 0; i < stepSize; ++i) {
+        etaValues.push_back(min + i * steps);  // 最小値からステップを加算
+    }
+}
+
 void csvDebugParents(std::vector<nsgaii::Individual>& parents, int& generations, const std::string& base_csv_file_path);
 void outputscreen(std::pair<nsgaii::Individual, nsgaii::Individual>& parents,std::pair<nsgaii::Individual, nsgaii::Individual>& children);
 
@@ -13,7 +21,7 @@ void outputscreen(std::pair<nsgaii::Individual, nsgaii::Individual>& parents,std
 int main()
 {
    // ベースとなるCSVファイルのパス（日時を付与するためのテンプレート）
-   std::string base_csv_file_path = "../data/no_mutation_first_sbx";
+   std::string base_csv_file_path = "../data/sbx_distribution";
 
    // YAML設定ファイルのパス
    std::string config_file_path = "../params/two_charge_schedule.yaml";
@@ -21,45 +29,23 @@ int main()
    std::unique_ptr<charge_schedule::TwoTransProblem> nsgaii = std::make_unique<charge_schedule::TwoTransProblem>(config_file_path);
 
    int current_generation = 0;
+   bool random = false;
    nsgaii->generateFirstParents();
    nsgaii->evaluatePopulation(nsgaii->parents);
    nsgaii->sortPopulation(nsgaii->parents);
    csvDebugParents(nsgaii->parents, current_generation, base_csv_file_path);
 
-   current_generation = 2.0;
-   nsgaii->setEtaSBX(2.0);
-   nsgaii->generateChildren(random);
-   nsgaii->evaluatePopulation(nsgaii->children);
-   nsgaii->sortPopulation(nsgaii->children);
-   csvDebugParents(nsgaii->children, current_generation, base_csv_file_path);
+   std::vector<float> etaValues;
+   generateEtaValues(1, 50.0, 1, etaValues);  // 最小値0.5, 最大値100.0, ステップ数20
 
-   current_generation = 5.0;
-   nsgaii->setEtaSBX(5.0);
-   nsgaii->generateChildren(random);
-   nsgaii->evaluatePopulation(nsgaii->children);
-   nsgaii->sortPopulation(nsgaii->children);
-   csvDebugParents(nsgaii->children, current_generation, base_csv_file_path);
-
-   current_generation = 10.0;
-   nsgaii->setEtaSBX(10.0);
-   nsgaii->generateChildren(random);
-   nsgaii->evaluatePopulation(nsgaii->children);
-   nsgaii->sortPopulation(nsgaii->children);
-   csvDebugParents(nsgaii->children, current_generation, base_csv_file_path);
-
-   current_generation = 20.0;
-   nsgaii->setEtaSBX(20.0);
-   nsgaii->generateChildren(random);
-   nsgaii->evaluatePopulation(nsgaii->children);
-   nsgaii->sortPopulation(nsgaii->children);
-   csvDebugParents(nsgaii->children, current_generation, base_csv_file_path);
-
-   current_generation = 50.0;
-   nsgaii->setEtaSBX(50.0);
-   nsgaii->generateChildren(random);
-   nsgaii->evaluatePopulation(nsgaii->children);
-   nsgaii->sortPopulation(nsgaii->children);
-   csvDebugParents(nsgaii->children, current_generation, base_csv_file_path);
+   for (float eta : etaValues) {
+       current_generation = eta;
+       nsgaii->setEtaSBX(eta);
+       nsgaii->generateChildren(random);
+       nsgaii->evaluatePopulation(nsgaii->children);
+       nsgaii->sortPopulation(nsgaii->children);
+       csvDebugParents(nsgaii->children, current_generation, base_csv_file_path);
+   }
 }
 
 void outputscreen(std::pair<nsgaii::Individual, nsgaii::Individual>& parents,std::pair<nsgaii::Individual, nsgaii::Individual>& children) {
@@ -284,7 +270,7 @@ void csvDebugParents(std::vector<nsgaii::Individual>& parents, int& generations,
     std::strftime(date_time, sizeof(date_time), "%Y-%m-%d_%H-%M", std::localtime(&now));
 
     // 日時を含むファイルパスを生成
-    std::string csv_file_path = base_csv_file_path + "_" + date_time + ".csv";
+    std::string csv_file_path = base_csv_file_path + ".csv";
 
     std::ofstream csvFile(csv_file_path, std::ios::app);
     if (!csvFile) {
