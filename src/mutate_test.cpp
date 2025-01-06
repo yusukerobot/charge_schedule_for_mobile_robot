@@ -27,7 +27,7 @@ int main()
     }
 
     // 生成ループを実行
-    runGenerationLoop(nsgaii, "../data/sbx_attempt/eta", eta_values, 100);
+    runGenerationLoop(nsgaii, "../data/mutation/eta", eta_values, 100);
 
     return 0;
 }
@@ -43,28 +43,24 @@ void runGenerationLoop(std::unique_ptr<charge_schedule::TwoTransProblem>& nsgaii
     for (int eta : eta_values) {
         // 各etaに対して処理を実行
         std::string eta_csv_file_path = base_csv_file_path + std::to_string(eta);
-        nsgaii->setEtaSBX(eta);  // SBXで使用するetaを設定
+        nsgaii->setEtaM(eta);  // Mutationで使用するetaを設定
         int current_generation = 0;
-        csvDebugParents(nsgaii->parents, current_generation, eta_csv_file_path);
 
-        for (int i = 0; i < 10; ++i) {
-            // 親を元にした世代ごとの進行
-            nsgaii->parents.clear();
-            nsgaii->parents = first_parents;
-            
-            while (current_generation < max_generation) {
-                nsgaii->generateChildren(false);  // randomフラグはfalse
-                nsgaii->evaluatePopulation(nsgaii->children);
-                nsgaii->generateCombinedPopulation();
-                nsgaii->sortPopulation(nsgaii->combind_population);
-                nsgaii->generateParents();
+        // 親を元にした世代ごとの進行
+        nsgaii->parents.clear();
+        nsgaii->parents = first_parents;
 
-                ++current_generation;
-            }
+        while (current_generation < max_generation) {
+            csvDebugParents(nsgaii->parents, current_generation, eta_csv_file_path);
+            nsgaii->generateChildren(false);  // randomフラグはfalse
+            nsgaii->evaluatePopulation(nsgaii->children);
+            nsgaii->generateCombinedPopulation();
+            nsgaii->sortPopulation(nsgaii->combind_population);
+            nsgaii->generateParents();
 
-            csvDebugParents(nsgaii->parents, i+1, eta_csv_file_path);
-            int current_generation = 0;
+            ++current_generation;
         }
+        csvDebugParents(nsgaii->parents, current_generation, eta_csv_file_path);
     }
 }
 

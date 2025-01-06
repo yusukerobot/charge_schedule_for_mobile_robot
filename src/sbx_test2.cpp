@@ -17,7 +17,7 @@ int main()
 
     // etaの最小値、最大値、ステップ数を指定
     int eta_min = 1;
-    int eta_max = 50;
+    int eta_max = 20;
     int eta_step = 1;
 
     // etaの値を作成

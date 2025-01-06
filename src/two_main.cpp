@@ -11,50 +11,50 @@ void outputscreen(std::pair<nsgaii::Individual, nsgaii::Individual>& parents,std
 
 int main()
 {
-    std::string base_csv_file_path = "../data/parents";
+    std::string base_csv_file_path = "../data/eta100";
     std::string config_file_path = "../params/two_charge_schedule.yaml";
 
     std::unique_ptr<charge_schedule::TwoTransProblem> nsgaii = std::make_unique<charge_schedule::TwoTransProblem>(config_file_path);
 
     int current_generation = 0;
-    bool random = true;
+    bool random = false;
     int max_generation = 100;
-    float f1_reference = 200;
-    float f2_reference = 100;
-    float hyper_volume = 0;
-    std::vector<nsgaii::Individual> pareto_front;
+    // float f1_reference = 200;
+    // float f2_reference = 100;
+    // float hyper_volume = 0;
+    // std::vector<nsgaii::Individual> pareto_front;
 
     nsgaii->generateFirstParents();
     nsgaii->evaluatePopulation(nsgaii->parents);
     nsgaii->sortPopulation(nsgaii->parents);
 
-    for (int i = 0; i < nsgaii->parents.size(); ++i) {
-        if (nsgaii->parents[i].fronts_count > 0) break;
-        pareto_front.emplace_back(nsgaii->parents[i]);
-    }
-    hyper_volume = nsgaii->calculateHypervolume(pareto_front, f1_reference, f2_reference);
-    std::cout << current_generation << ". hyper_volume: " << hyper_volume << std::endl;
+    // for (int i = 0; i < nsgaii->parents.size(); ++i) {
+    //     if (nsgaii->parents[i].fronts_count > 0) break;
+    //     pareto_front.emplace_back(nsgaii->parents[i]);
+    // }
+    // hyper_volume = nsgaii->calculateHypervolume(pareto_front, f1_reference, f2_reference);
+    // std::cout << current_generation << ". hyper_volume: " << hyper_volume << std::endl;
 
     while (current_generation < max_generation) {
         csvDebugParents(nsgaii->parents, current_generation, base_csv_file_path);
 
-        // if (current_generation > 90) {
-        //     // random = false;
-        //     nsgaii->setEtaSBX(20);
-        //     nsgaii->setEtaM(50);
-        // }
+        if (current_generation > 50) {
+            // random = false;
+            nsgaii->setEtaSBX(20);
+            // nsgaii->setEtaM(50);
+        }
         nsgaii->generateChildren(random);
-
+        nsgaii->evaluatePopulation(nsgaii->children);
         nsgaii->generateCombinedPopulation();
         nsgaii->sortPopulation(nsgaii->combind_population);
         nsgaii->generateParents();
 
-        for (int i = 0; i < nsgaii->parents.size(); ++i) {
-            if (nsgaii->parents[i].fronts_count > 0) break;
-            pareto_front.emplace_back(nsgaii->parents[i]);
-        }
-        hyper_volume = nsgaii->calculateHypervolume(pareto_front, f1_reference, f2_reference);
-        std::cout << current_generation << ". hyper_volume: " << hyper_volume << std::endl;
+        // for (int i = 0; i < nsgaii->parents.size(); ++i) {
+        //     if (nsgaii->parents[i].fronts_count > 0) break;
+        //     pareto_front.emplace_back(nsgaii->parents[i]);
+        // }
+        // hyper_volume = nsgaii->calculateHypervolume(pareto_front, f1_reference, f2_reference);
+        // std::cout << current_generation << ". hyper_volume: " << hyper_volume << std::endl;
         ++current_generation;
     }
     csvDebugParents(nsgaii->parents, current_generation, base_csv_file_path);
