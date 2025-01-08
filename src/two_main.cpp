@@ -11,13 +11,13 @@ void outputscreen(std::pair<nsgaii::Individual, nsgaii::Individual>& parents,std
 
 int main()
 {
-    std::string base_csv_file_path = "../data/eta100";
+    std::string base_csv_file_path = "../data/sbx5_mutate2";
     std::string config_file_path = "../params/two_charge_schedule.yaml";
 
     std::unique_ptr<charge_schedule::TwoTransProblem> nsgaii = std::make_unique<charge_schedule::TwoTransProblem>(config_file_path);
 
     int current_generation = 0;
-    bool random = false;
+    bool random = true;
     int max_generation = 100;
     // float f1_reference = 200;
     // float f2_reference = 100;
@@ -38,11 +38,11 @@ int main()
     while (current_generation < max_generation) {
         csvDebugParents(nsgaii->parents, current_generation, base_csv_file_path);
 
-        if (current_generation > 50) {
+        // if (current_generation > 50) {
             // random = false;
-            nsgaii->setEtaSBX(20);
+            // nsgaii->setEtaSBX(20);
             // nsgaii->setEtaM(50);
-        }
+        // }
         nsgaii->generateChildren(random);
         nsgaii->evaluatePopulation(nsgaii->children);
         nsgaii->generateCombinedPopulation();
